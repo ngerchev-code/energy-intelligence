@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The data provider sometimes redirects to plain http; allow that one public-data host only. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">api.energy-charts.info</domain>
+    </domain-config>
+</network-security-config>
