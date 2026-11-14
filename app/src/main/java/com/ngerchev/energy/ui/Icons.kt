@@ -30,9 +30,9 @@ object Icons {
         "M17.65,6.35C16.2,4.9 14.21,4 12,4c-4.42,0 -7.99,3.58 -7.99,8s3.57,8 7.99,8c3.73,0 6.84,-2.55 7.73,-6h-2.08c-0.82,2.33 -3.04,4 -5.65,4 -3.31,0 -6,-2.69 -6,-6s2.69,-6 6,-6c1.66,0 3.14,0.69 4.22,1.78L13,11h7V4l-2.35,2.35z",
     )
 
-    @Composable fun Price() = Icon(price, contentDescription = "Цени")
-    @Composable fun Grid() = Icon(grid, contentDescription = "Мрежа")
-    @Composable fun Battery() = Icon(battery, contentDescription = "BESS")
-    @Composable fun Info() = Icon(info, contentDescription = "Инфо")
-    @Composable fun Refresh() = Icon(refresh, contentDescription = "Обнови")
+    @Composable fun Price(tint: Color = EColors.Text) = Icon(price, contentDescription = "Цени", tint = tint)
+    @Composable fun Grid(tint: Color = EColors.Text) = Icon(grid, contentDescription = "Мрежа", tint = tint)
+    @Composable fun Battery(tint: Color = EColors.Text) = Icon(battery, contentDescription = "BESS", tint = tint)
+    @Composable fun Info(tint: Color = EColors.Text) = Icon(info, contentDescription = "Инфо", tint = tint)
+    @Composable fun Refresh(tint: Color = EColors.Text) = Icon(refresh, contentDescription = "Обнови", tint = tint)
 }

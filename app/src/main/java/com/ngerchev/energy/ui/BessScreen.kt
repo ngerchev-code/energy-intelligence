@@ -32,41 +32,41 @@ fun BessScreen(data: MarketData, input: BessInput, onChange: (BessInput) -> Unit
     val res = remember(days, input) { Bess.evaluate(days, input) }
 
     LazyColumn(
-        contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp,
-            top = padding.calculateTopPadding() + 8.dp,
-            bottom = padding.calculateBottomPadding() + 16.dp,
-        ),
+        contentPadding = screenPadding(padding),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Card {
-                SectionTitle("Доходност на батерия (BESS)",
-                    "Арбитраж на пазара ден напред по реалните цени за последните ${days.size} дни")
+            Tile(color = EColors.Lime, radius = 30.dp) {
+                Text("Батерия ${fmt1(input.powerMw)} MW / ${fmt1(input.capacityMwh)} MWh",
+                    color = EColors.OnLime, fontSize = 13.sp, fontWeight = FontWeight.Bold, fontFamily = Body)
+                Spacer(Modifier.height(6.dp))
                 if (res == null) {
-                    Text("Няма достатъчно ценови данни.", color = EColors.Muted)
+                    Text("Няма достатъчно ценови данни.", color = EColors.OnLime, fontFamily = Body)
                 } else {
-                    StatRow {
-                        Stat("Нето годишно", eur(res.annualNet), "", if (res.annualNet > 0) EColors.Green else EColors.Red)
-                        Stat("Откупуване", res.paybackYears?.let { fmt1(it) } ?: "—", "год.", EColors.Amber)
+                    Num(eur(res.annualNet), 34.sp, EColors.OnLime)
+                    Text("нето годишно · по реалните цени за ${days.size} дни",
+                        color = EColors.OnLime, fontSize = 12.sp, fontFamily = Body)
+                    Spacer(Modifier.height(14.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Stat("Откупуване", res.paybackYears?.let { fmt1(it) } ?: "—", "год.", EColors.Text, EColors.OnLime)
+                        Stat("Среден ден", eur(res.avgDailyProfit), "", EColors.Text, EColors.OnLime)
                     }
-                    Spacer(Modifier.height(8.dp))
-                    StatRow {
-                        Stat("Среден ден", eur(res.avgDailyProfit))
-                        Stat("Инвестиция", eur(res.capex))
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Line("Приход от арбитраж / год.", eur(res.annualRevenue))
-                    Line("Оперативни разходи / год.", "− " + eur(res.annualOpex))
-                    Line("Най-добър ден", eur(res.bestDay))
-                    Line("Най-слаб ден", eur(res.worstDay))
-                    Line("Печеливши дни", "${(res.profitableDaysShare * 100).roundToInt()} %")
-                    Line("Цикли годишно", fmt0(input.cyclesPerDay * 365 * input.availability))
                 }
             }
         }
+        if (res != null) item {
+            Tile {
+                Line("Приход от арбитраж / год.", eur(res.annualRevenue))
+                Line("Поддръжка / год.", "− " + eur(res.annualOpex))
+                Line("Инвестиция", eur(res.capex))
+                Line("Най-добър ден", eur(res.bestDay))
+                Line("Най-слаб ден", eur(res.worstDay))
+                Line("Печеливши дни", "${(res.profitableDaysShare * 100).roundToInt()} %")
+                Line("Цикли годишно", fmt0(input.cyclesPerDay * 365 * input.availability))
+            }
+        }
         item {
-            Card {
+            Tile {
                 SectionTitle("Параметри", "Промените се смятат веднага")
                 Param("Мощност", input.powerMw, 0.5f..50f, "MW", 0.5) { onChange(input.copy(powerMw = it)) }
                 Param("Капацитет", input.capacityMwh, 0.5f..200f, "MWh", 0.5) { onChange(input.copy(capacityMwh = it)) }
@@ -86,11 +86,11 @@ fun BessScreen(data: MarketData, input: BessInput, onChange: (BessInput) -> Unit
                     onChange(input.copy(opexEurPerMwYear = it * 1000))
                 }
                 Text("Продължителност: ${fmt1(input.capacityMwh / input.powerMw)} ч. при пълна мощност",
-                    color = EColors.Muted, fontSize = 12.sp)
+                    color = EColors.Muted, fontSize = 12.sp, fontFamily = Body)
             }
         }
         item {
-            Card {
+            Tile {
                 SectionTitle("Как се смята")
                 Text(
                     "Всеки ден батерията купува енергия в най-евтините часове и я продава в по-скъпите часове " +
@@ -100,7 +100,7 @@ fun BessScreen(data: MarketData, input: BessInput, onChange: (BessInput) -> Unit
                         "приходи от балансиращи услуги (aFRR/mFRR) и финансиране — реалната доходност може да е " +
                         "по-висока от услуги към ЕСО или по-ниска заради такси. Това е ориентировъчен модел, не " +
                         "инвестиционен съвет.",
-                    color = EColors.Muted, fontSize = 13.sp, lineHeight = 19.sp,
+                    color = EColors.Muted, fontSize = 13.sp, lineHeight = 19.sp, fontFamily = Body,
                 )
             }
         }
@@ -110,8 +110,8 @@ fun BessScreen(data: MarketData, input: BessInput, onChange: (BessInput) -> Unit
 @Composable
 private fun Line(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(label, color = EColors.Muted, fontSize = 14.sp, modifier = Modifier.weight(1f))
-        Text(value, color = EColors.Text, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = EColors.Muted, fontSize = 14.sp, fontFamily = Body, modifier = Modifier.weight(1f))
+        Text(value, color = EColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = Body)
     }
 }
 
@@ -122,10 +122,10 @@ private fun Param(
 ) {
     Column(Modifier.padding(vertical = 2.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label, color = EColors.Text, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(label, color = EColors.Text, fontSize = 14.sp, fontFamily = Body, modifier = Modifier.weight(1f))
             Text(
                 (if (step >= 1.0) fmt0(value) else fmt1(value)) + if (unit.isNotEmpty()) " $unit" else "",
-                color = EColors.Teal, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+                color = EColors.Lime, fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = Body,
             )
         }
         Slider(
@@ -133,7 +133,7 @@ private fun Param(
             onValueChange = { v -> onChange(((v / step).roundToInt() * step)) },
             valueRange = range,
             colors = SliderDefaults.colors(
-                thumbColor = EColors.Teal, activeTrackColor = EColors.Teal, inactiveTrackColor = EColors.CardHigh,
+                thumbColor = EColors.Teal, activeTrackColor = EColors.Teal, inactiveTrackColor = EColors.Track,
             ),
         )
     }

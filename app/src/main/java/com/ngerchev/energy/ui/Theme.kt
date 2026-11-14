@@ -1,41 +1,87 @@
 package com.ngerchev.energy.ui
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import com.ngerchev.energy.R
 
+/** "Dispatch board" identity: deep green-graphite, lime signal, warm sand, Unbounded + Manrope. */
 object EColors {
-    val Bg = Color(0xFF0B1220)
-    val Card = Color(0xFF131C2E)
-    val CardHigh = Color(0xFF1B2740)
-    val Teal = Color(0xFF2DD4BF)
-    val Amber = Color(0xFFFBBF24)
-    val Red = Color(0xFFF87171)
-    val Green = Color(0xFF4ADE80)
-    val Blue = Color(0xFF60A5FA)
-    val Text = Color(0xFFE5E9F0)
-    val Muted = Color(0xFF8B97AD)
-    val Grid = Color(0xFF26324A)
+    val Bg = Color(0xFF0E1915)
+    val Tile = Color(0xFF17261F)
+    val Track = Color(0xFF24382E)
+    val BarIdle = Color(0xFF2E463A)
+    val Lime = Color(0xFFC6F432)
+    val Sand = Color(0xFFF2E9DC)
+    val Mint = Color(0xFF7CC8A8)
+    val Coral = Color(0xFFFF8A6B)
+    val Sky = Color(0xFF8EC5FF)
+    val Text = Color(0xFFEAF2EC)
+    val Muted = Color(0xFF9FB3A8)
+    val OnLime = Color(0xFF0E1915)
+    val OnSand = Color(0xFF2A1A0A)
+
+    // Aliases kept for older call sites.
+    val Teal = Lime
+    val Amber = Sand
+    val Green = Mint
+    val Red = Coral
+    val Blue = Sky
+    val Card = Tile
+    val CardHigh = Track
+    val Grid = Track
 }
+
+val Display = FontFamily(
+    Font(R.font.unbounded_regular, FontWeight.Normal),
+    Font(R.font.unbounded_semibold, FontWeight.SemiBold),
+    Font(R.font.unbounded_extrabold, FontWeight.ExtraBold),
+)
+
+val Body = FontFamily(
+    Font(R.font.manrope_regular, FontWeight.Normal),
+    Font(R.font.manrope_semibold, FontWeight.SemiBold),
+    Font(R.font.manrope_bold, FontWeight.Bold),
+)
+
+private val base = Typography()
+private fun TextStyle.body() = copy(fontFamily = Body)
 
 @Composable
 fun EnergyTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
-            primary = EColors.Teal,
-            onPrimary = Color(0xFF00201C),
-            secondary = EColors.Amber,
+            primary = EColors.Lime,
+            onPrimary = EColors.OnLime,
+            secondary = EColors.Sand,
             background = EColors.Bg,
             surface = EColors.Bg,
-            surfaceVariant = EColors.Card,
-            surfaceContainer = EColors.Card,
-            surfaceContainerHigh = EColors.CardHigh,
+            surfaceVariant = EColors.Tile,
+            surfaceContainer = EColors.Tile,
+            surfaceContainerHigh = EColors.Track,
             onBackground = EColors.Text,
             onSurface = EColors.Text,
             onSurfaceVariant = EColors.Muted,
-            outline = EColors.Grid,
-            error = EColors.Red,
+            outline = EColors.Track,
+            error = EColors.Coral,
+        ),
+        typography = Typography(
+            displayLarge = base.displayLarge.copy(fontFamily = Display),
+            headlineMedium = base.headlineMedium.copy(fontFamily = Display),
+            titleLarge = base.titleLarge.body(),
+            titleMedium = base.titleMedium.body(),
+            bodyLarge = base.bodyLarge.body(),
+            bodyMedium = base.bodyMedium.body(),
+            bodySmall = base.bodySmall.body(),
+            labelLarge = base.labelLarge.body(),
+            labelMedium = base.labelMedium.body(),
+            labelSmall = base.labelSmall.body(),
         ),
         content = content,
     )
@@ -45,16 +91,16 @@ fun EnergyTheme(content: @Composable () -> Unit) {
 fun sourceColor(key: String): Color {
     val k = key.lowercase()
     return when {
-        "nuclear" in k -> Color(0xFFA78BFA)
-        "lignite" in k || "brown" in k -> Color(0xFF8D6E63)
-        "hard coal" in k || "hard_coal" in k || "coal" in k -> Color(0xFF6B7280)
-        "gas" in k -> Color(0xFFFB923C)
-        "solar" in k -> EColors.Amber
-        "wind" in k -> EColors.Blue
-        "hydro" in k || "water" in k -> Color(0xFF38BDF8)
-        "biomass" in k || "bio" in k -> EColors.Green
-        "oil" in k -> Color(0xFF78716C)
-        else -> Color(0xFF94A3B8)
+        "nuclear" in k -> EColors.Lime
+        "lignite" in k || "brown" in k -> Color(0xFFB08968)
+        "coal" in k -> Color(0xFF7D8A84)
+        "gas" in k -> EColors.Coral
+        "solar" in k -> Color(0xFFFFD166)
+        "wind" in k -> EColors.Sky
+        "hydro" in k || "water" in k -> EColors.Mint
+        "biomass" in k || "bio" in k -> Color(0xFF9BD17A)
+        "oil" in k -> Color(0xFF8A7F72)
+        else -> EColors.Sand
     }
 }
 
@@ -66,11 +112,11 @@ fun sourceLabel(id: String, name: String): String {
         "lignite" in k || "brown" in k -> "Лигнитни ТЕЦ"
         "hard coal" in k || "hard_coal" in k -> "Каменни въглища"
         "gas" in k -> "Природен газ"
-        "solar" in k -> "Слънце (ФЕЦ)"
+        "solar" in k -> "Слънце"
         "wind" in k -> "Вятър"
         "pumped" in k -> "ПАВЕЦ"
-        "reservoir" in k -> "ВЕЦ (язовирни)"
-        "run" in k && "river" in k -> "ВЕЦ (течащи)"
+        "reservoir" in k -> "ВЕЦ язовирни"
+        "run" in k && "river" in k -> "ВЕЦ течащи"
         "hydro" in k -> "ВЕЦ"
         "biomass" in k -> "Биомаса"
         "oil" in k -> "Нефт"
@@ -86,7 +132,7 @@ private val countryNames = mapOf(
     "gr" to "Гърция", "greece" to "Гърция",
     "tr" to "Турция", "turkey" to "Турция", "türkiye" to "Турция",
     "rs" to "Сърбия", "serbia" to "Сърбия",
-    "mk" to "Северна Македония", "north macedonia" to "Северна Македония",
+    "mk" to "Сев. Македония", "north macedonia" to "Сев. Македония",
 )
 
 fun countryLabel(id: String, name: String): String =
