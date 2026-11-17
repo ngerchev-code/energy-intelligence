@@ -1,17 +1,22 @@
-# Energy Intelligence Bulgaria
+# Energy Intelligence Bulgaria (Енерго BG)
 
-Android приложение за анализ на електроенергийния пазар в България.
+Android приложение и сървърна задача за анализ на енергийния пазар в България и Европа.
 
-- **Цени** – пазар ден напред (зона BG): днес и утре, почасово, мин./макс., спред, отрицателни часове, 30-дневна история.
-- **Мрежа** – производство по източници в момента и през деня, дял ВЕИ, трансграничен обмен със съседите.
-- **BESS** – калкулатор за доходност на батерия по реалните цени за последните 30 дни (арбитраж), откупуване.
+## Архитектура
+```
+GitHub Actions (на всеки 15 мин.)  ──>  клон `data`: feed/feed.json, news.json, status.json  ──>  Android приложение
+  pipeline/fetch.py                       (без ключове, с източник, час, тип и резолюция)        (резервно: Energy-Charts директно)
+```
+- **Ключове** – само в GitHub Secrets: `ENTSOE_TOKEN` (задължителен за ENTSO-E), `ANTHROPIC_API_KEY` (по желание – BG резюмета и дневен AI анализ).
+- **Източници:** ENTSO-E Transparency Platform → резервно Energy-Charts (Fraunhofer ISE); Open-Meteo (прогноза + ансамбъл); RSS: European Commission, US DOE, ScienceDaily, Phys.org, Energy-Storage.news, pv magazine.
+- Всеки набор данни носи: източник, URL, тип (ден напред / измерено / прогноза / история), единица, резолюция, час на изтегляне.
 
-Данни: [Energy-Charts](https://api.energy-charts.info) (Fraunhofer ISE), първичен източник ENTSO-E и БНЕБ.
+## Раздели
+Табло · Енергиен пазар · Европа и Балкани · Производство · Пренос и търговия · BESS анализатор (NPV/IRR, LFP/NMC/Na-ion/проточни) · Новини · Energy Vision · Знаете ли, че...? · AI анализатор · Отчети (CSV/PDF) · Настройки (тема, състояние на източниците).
+
+## Тестове
+- `python -m unittest discover -s pipeline/tests` – парсване на ENTSO-E XML, Energy-Charts, RSS, класификация, часови зони.
+- `./gradlew testDebugUnitTest` – цени, батерия, NPV/IRR, справочник, четене на feed.json.
 
 ## Инсталиране
-Всяко качване в `main` се билдва автоматично (GitHub Actions) и се публикува като Release.
-Свали `EnergyIntelligence.apk` от последния Release и го отвори на телефона.
-
-## Предстои
-- Директна връзка с ENTSO-E API (ключът се пази като GitHub secret, не в кода).
-- Известия при отрицателни/високи цени, съседни зони, PV + батерия.
+Всяко качване в `main` се билдва и публикува като Release → `EnergyIntelligence.apk`.
