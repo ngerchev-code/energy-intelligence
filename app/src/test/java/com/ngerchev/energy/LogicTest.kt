@@ -73,4 +73,48 @@ class LogicTest {
         assertTrue(set.series.none { it.name == "Load" })
         assertEquals(2, set.series.size)
     }
+
+    @Test
+    fun financeNpvAndIrr() {
+        val r = com.ngerchev.energy.logic.BessResult(30, 0.0, 0.0, 0.0, annualRevenue = 150.0, annualOpex = 0.0,
+            annualNet = 150.0, capex = 1000.0, paybackYears = null, profitableDaysShare = 1.0)
+        val inp = BessInput(degradationPerYear = 0.0, lifeYears = 10, cycleLife = 100000, discountRate = 0.0)
+        val f = Bess.finance(r, inp)
+        assertEquals(10, f.years)
+        assertEquals(500.0, f.npv, 1e-6)          // 10 x 150 - 1000 at 0 %
+        assertEquals(0.0814, f.irr!!, 1e-3)       // known IRR of this annuity
+    }
+
+    @Test
+    fun cycleLifeShortensProject() {
+        val r = com.ngerchev.energy.logic.BessResult(30, 0.0, 0.0, 0.0, 100.0, 0.0, 100.0, 500.0, null, 1.0)
+        val f = Bess.finance(r, BessInput(cyclesPerDay = 2, availability = 1.0, cycleLife = 3650, lifeYears = 15))
+        assertEquals(5, f.years)
+    }
+
+    @Test
+    fun knowledgeDailyIsStable() {
+        val k = com.ngerchev.energy.logic.Knowledge(listOf("A"), listOf(
+            com.ngerchev.energy.logic.Article("1", "t", "s", "x", "A", "T", "D", listOf("tag"), emptyList(), "v", "p", "r", 1),
+            com.ngerchev.energy.logic.Article("2", "t2", "s", "x", "A", "T", "D", listOf("tag"), emptyList(), "v", "p", "r", 1)))
+        val d = java.time.LocalDate.of(2026, 11, 17)
+        assertEquals(k.daily(d), k.daily(d))
+        assertEquals(1, k.search("t2", null).size)
+        assertEquals(1, k.related(k.articles[0]).size)
+    }
+
+    @Test
+    fun parsesFeedJson() {
+        val json = """{"schema":1,"generated_at":"2026-11-17T15:00Z","sources":[{"id":"entsoe","name":"ENTSO-E","url":"u","status":"not_configured"}],
+          "bg":{"prices":{"source":"Energy-Charts","kind":"day-ahead","unit":"EUR/MWh","resolution":"PT15M","retrieved_at":"2026-11-17T15:00Z",
+            "points":[["2026-11-17T10:00Z",100.5],["2026-11-17T10:15Z",null]]},
+          "flows":{"source":"x","kind":"commercial","neighbours":{"RO":[["2026-11-17T10:00Z",-300]],"GR":[["2026-11-17T10:00Z",120]]}}},
+          "europe":{"zones":{"BG":{"name":"България","source":"x","resolution":"PT15M","today":{"avg":100,"min":50,"max":150},"tomorrow":null,"daily":[["2026-11-16",90.0]]}}}}"""
+        val f = com.ngerchev.energy.data.FeedParser.parse(json)
+        assertEquals(1, f.prices.size)
+        assertEquals(12, f.prices[0].time.hour)            // 10:00 UTC = 12:00 Sofia (winter)
+        assertEquals(false, f.entsoeConfigured)
+        assertEquals(-180.0, f.flows!!.series.sumOf { it.values[0] ?: 0.0 }, 1e-9)
+        assertEquals(100.0, f.europe[0].today!!.avg, 1e-9)
+    }
 }

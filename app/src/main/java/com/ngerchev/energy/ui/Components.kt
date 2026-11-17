@@ -196,7 +196,7 @@ fun BarChart(
         Canvas(Modifier.fillMaxWidth().height(height)) {
             val n = values.size
             val slot = size.width / n
-            val gap = (slot * 0.22f).coerceIn(1.dp.toPx(), 4.dp.toPx())
+            val gap = if (slot < 3.dp.toPx()) 0f else (slot * 0.22f).coerceIn(1.dp.toPx(), 4.dp.toPx())
             val zeroY = (maxV / range * size.height).toFloat()
             values.forEachIndexed { i, v ->
                 val minH = 4.dp.toPx()
@@ -209,7 +209,7 @@ fun BarChart(
                     val bottom = ((maxV - v) / range * size.height).toFloat()
                     zeroY to (bottom - zeroY).coerceAtLeast(minH)
                 }
-                drawRoundRect(c, Offset(i * slot + gap / 2, y), Size(slot - gap, h), CornerRadius(4.dp.toPx()))
+                drawRoundRect(c, Offset(i * slot + gap / 2, y), Size(slot - gap, h), CornerRadius(if (slot < 6.dp.toPx()) 0f else 4.dp.toPx()))
             }
             if (average != null) {
                 val y = ((maxV - average) / range * size.height).toFloat()
@@ -257,7 +257,7 @@ fun StackedChart(
     Column {
         Canvas(Modifier.fillMaxWidth().height(height)) {
             val slot = size.width / columns.size
-            val gap = (slot * 0.2f).coerceIn(1.dp.toPx(), 4.dp.toPx())
+            val gap = if (slot < 3.dp.toPx()) 0f else (slot * 0.2f).coerceIn(1.dp.toPx(), 4.dp.toPx())
             columns.forEachIndexed { i, col ->
                 var y = size.height
                 col.forEach { (c, v) ->

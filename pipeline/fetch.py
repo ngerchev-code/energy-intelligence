@@ -109,7 +109,7 @@ def iso(t: dt.datetime) -> str:
     return t.astimezone(UTC).strftime("%Y-%m-%dT%H:%MZ")
 
 
-def http_get(url: str, timeout=40, retries=2, accept="*/*") -> bytes:
+def http_get(url: str, timeout=40, retries=3, accept="*/*") -> bytes:
     last = None
     for attempt in range(retries + 1):
         try:
@@ -122,6 +122,9 @@ def http_get(url: str, timeout=40, retries=2, accept="*/*") -> bytes:
             # ENTSO-E answers 400 with an XML reason when there is simply no data.
             if e.code in (400, 401, 403, 404):
                 raise RuntimeError(f"HTTP {e.code}: {_reason(body)}") from e
+            if e.code == 429:  # rate limited: wait longer before retrying
+                time.sleep(8 * (attempt + 1))
+                continue
         except Exception as e:  # network hiccup: retry with backoff
             last = e
         time.sleep(2 * (attempt + 1))
@@ -233,6 +236,7 @@ def parse_entsoe(body: bytes) -> list[dict]:
 
 def ec(path: str, params: dict, label: str) -> dict | None:
     url = f"{EC_URL}{path}?{urllib.parse.urlencode(params)}"
+    time.sleep(1.5)  # be polite: Energy-Charts rate-limits bursts
     try:
         data = json.loads(http_get(url, accept="application/json"))
         mark("energycharts", "Energy-Charts (Fraunhofer ISE)", "https://www.energy-charts.info", True)
@@ -337,7 +341,7 @@ def generation_bg() -> dict | None:
     if not o:
         return None
     times, cols = ec_series(o)
-    skip = ("load", "share", "cross", "import", "export", "residual")
+    skip = ("load", "share", "cross", "import", "export", "residual", "consumption")
     series = {k: pts([(t, v) for t, v in zip(times, c) if v is not None])
               for k, c in cols.items() if not any(w in k.lower() for w in skip)}
     load = next((c for k, c in cols.items() if k.lower().strip() == "load"), None)
@@ -468,16 +472,11 @@ def weather() -> dict | None:
 
 FEEDS = [
     ("ec_energy", "European Commission – Energy", "https://energy.ec.europa.eu/node/2/rss_en", "official"),
-    ("iea", "IEA – News", "https://www.iea.org/api/rss/news", "official"),
-    ("entsoe_news", "ENTSO-E – News", "https://www.entsoe.eu/news/feed/", "official"),
     ("doe", "US Department of Energy", "https://www.energy.gov/rss/newsroom.xml", "official"),
-    ("nrel", "NREL – News", "https://www.nrel.gov/news/rss.xml", "lab"),
-    ("iter", "ITER Newsline", "https://www.iter.org/rss/newsline", "lab"),
     ("sciencedaily", "ScienceDaily – Energy", "https://www.sciencedaily.com/rss/matter_energy.xml", "research"),
     ("phys_energy", "Phys.org – Energy & Green Tech", "https://phys.org/rss-feed/technology-news/energy-green-tech/", "research"),
     ("ess_news", "Energy-Storage.news", "https://www.energy-storage.news/feed/", "industry"),
     ("pvmag", "pv magazine", "https://www.pv-magazine.com/feed/", "industry"),
-    ("rechargenews", "Hydrogen Insight", "https://www.hydrogeninsight.com/rss", "industry"),
 ]
 
 CATS = [  # (key, Bulgarian label, keywords)

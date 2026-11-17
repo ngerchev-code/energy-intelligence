@@ -30,6 +30,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _bess = MutableStateFlow(loadBess())
     val bess: StateFlow<BessInput> = _bess.asStateFlow()
 
+    val knowledge = com.ngerchev.energy.logic.Knowledge.load(app)
+
+    /** 0 = system, 1 = dark, 2 = light. */
+    private val _theme = MutableStateFlow(prefs.getInt("theme", 1))
+    val theme: StateFlow<Int> = _theme.asStateFlow()
+    fun setTheme(v: Int) { _theme.value = v; prefs.edit().putInt("theme", v).apply() }
+
     init { refresh() }
 
     fun refresh() {
@@ -54,6 +61,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             .putInt("cyc", input.cyclesPerDay)
             .putFloat("capex", input.capexEurPerKwh.toFloat())
             .putFloat("opex", input.opexEurPerMwYear.toFloat())
+            .putString("tech", input.tech)
+            .putFloat("deg", input.degradationPerYear.toFloat())
+            .putInt("cl", input.cycleLife)
+            .putInt("life", input.lifeYears)
+            .putFloat("dr", input.discountRate.toFloat())
             .apply()
     }
 
@@ -67,6 +79,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             cyclesPerDay = prefs.getInt("cyc", d.cyclesPerDay),
             capexEurPerKwh = prefs.getFloat("capex", d.capexEurPerKwh.toFloat()).toDouble(),
             opexEurPerMwYear = prefs.getFloat("opex", d.opexEurPerMwYear.toFloat()).toDouble(),
+            tech = prefs.getString("tech", d.tech) ?: d.tech,
+            degradationPerYear = prefs.getFloat("deg", d.degradationPerYear.toFloat()).toDouble(),
+            cycleLife = prefs.getInt("cl", d.cycleLife),
+            lifeYears = prefs.getInt("life", d.lifeYears),
+            discountRate = prefs.getFloat("dr", d.discountRate.toFloat()).toDouble(),
         )
     }
 }

@@ -18,7 +18,30 @@ class EnergyRepository(context: Context) {
 
     private val prefs = context.getSharedPreferences("cache", Context.MODE_PRIVATE)
 
+    /** Server feed first (ENTSO-E, weather, news); the direct Energy-Charts download stays as fallback. */
     suspend fun load(): MarketData = withContext(Dispatchers.IO) {
+        val feedBody = fetchAny("feed", listOf("$FEED/feed.json"))
+        val feed = feedBody?.let { runCatching { FeedParser.parse(it.body) }.getOrNull() }
+        val news = fetchAny("news", listOf("$FEED/news.json"))
+            ?.let { runCatching { FeedParser.parseNews(it.body) }.getOrNull() }.orEmpty()
+        if (feed != null && feed.prices.isNotEmpty()) {
+            val tomorrow = LocalDate.now(EnergyParser.SOFIA).plusDays(1)
+            return@withContext MarketData(
+                prices30d = feed.prices,
+                tomorrow = feed.prices.filter { it.time.toLocalDate() == tomorrow },
+                generation = feed.generation,
+                flows = feed.flows,
+                license = feed.pricesMeta?.license,
+                fetchedAt = feed.generatedAt,
+                fromCache = feedBody.cached,
+                feed = feed,
+                news = news,
+            )
+        }
+        loadDirect().copy(feed = feed, news = news)
+    }
+
+    private suspend fun loadDirect(): MarketData = withContext(Dispatchers.IO) {
         val today = LocalDate.now(EnergyParser.SOFIA)
         val from = today.minusDays(30)
         val tomorrow = today.plusDays(1)
@@ -73,7 +96,8 @@ class EnergyRepository(context: Context) {
     }
 
     private fun looksValid(body: String) =
-        body.trimStart().startsWith("{") && (body.contains("\"data\"") || body.contains("unix_seconds"))
+        body.trimStart().startsWith("{") &&
+            (body.contains("\"data\"") || body.contains("unix_seconds") || body.contains("\"schema\"") || body.contains("\"items\""))
 
     /** GET with manual redirects (Android does not follow https -> http on its own). */
     private fun get(url: String, hops: Int = 0): String {
@@ -98,5 +122,7 @@ class EnergyRepository(context: Context) {
 
     companion object {
         private const val BASE = "https://api.energy-charts.info"
+        /** Published every 15 min by the data-sync workflow; contains no credentials. */
+        const val FEED = "https://raw.githubusercontent.com/ngerchev-code/energy-intelligence/data/feed"
     }
 }

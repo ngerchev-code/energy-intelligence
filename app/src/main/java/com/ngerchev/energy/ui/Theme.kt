@@ -3,7 +3,11 @@ package com.ngerchev.energy.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -11,31 +15,37 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.ngerchev.energy.R
 
+/** Theme switch, read by the colour getters so every screen follows it. */
+object Palette {
+    var light by mutableStateOf(false)
+}
+
 /** "Dispatch board" identity: deep green-graphite, lime signal, warm sand, Unbounded + Manrope. */
 object EColors {
-    val Bg = Color(0xFF0E1915)
-    val Tile = Color(0xFF17261F)
-    val Track = Color(0xFF24382E)
-    val BarIdle = Color(0xFF2E463A)
+    private val d get() = !Palette.light
+    val Bg get() = if (d) Color(0xFF0E1915) else Color(0xFFEFF2EC)
+    val Tile get() = if (d) Color(0xFF17261F) else Color(0xFFFFFFFF)
+    val Track get() = if (d) Color(0xFF24382E) else Color(0xFFDDE5DF)
+    val BarIdle get() = if (d) Color(0xFF2E463A) else Color(0xFFC3D0C8)
     val Lime = Color(0xFFC6F432)
-    val Sand = Color(0xFFF2E9DC)
-    val Mint = Color(0xFF7CC8A8)
-    val Coral = Color(0xFFFF8A6B)
-    val Sky = Color(0xFF8EC5FF)
-    val Text = Color(0xFFEAF2EC)
-    val Muted = Color(0xFF9FB3A8)
+    val Sand get() = if (d) Color(0xFFF2E9DC) else Color(0xFFE9D9BF)
+    val Mint get() = if (d) Color(0xFF7CC8A8) else Color(0xFF2E9C74)
+    val Coral get() = if (d) Color(0xFFFF8A6B) else Color(0xFFD4512E)
+    val Sky get() = if (d) Color(0xFF8EC5FF) else Color(0xFF2F74C8)
+    val Text get() = if (d) Color(0xFFEAF2EC) else Color(0xFF0E1915)
+    val Muted get() = if (d) Color(0xFF9FB3A8) else Color(0xFF4C5E55)
     val OnLime = Color(0xFF0E1915)
     val OnSand = Color(0xFF2A1A0A)
 
     // Aliases kept for older call sites.
-    val Teal = Lime
-    val Amber = Sand
-    val Green = Mint
-    val Red = Coral
-    val Blue = Sky
-    val Card = Tile
-    val CardHigh = Track
-    val Grid = Track
+    val Teal get() = Lime
+    val Amber get() = Sand
+    val Green get() = Mint
+    val Red get() = Coral
+    val Blue get() = Sky
+    val Card get() = Tile
+    val CardHigh get() = Track
+    val Grid get() = Track
 }
 
 val Display = FontFamily(
@@ -56,7 +66,10 @@ private fun TextStyle.body() = copy(fontFamily = Body)
 @Composable
 fun EnergyTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = darkColorScheme(
+        colorScheme = (if (Palette.light) lightColorScheme(
+            primary = EColors.Lime, onPrimary = EColors.OnLime, background = EColors.Bg, surface = EColors.Bg,
+            onBackground = EColors.Text, onSurface = EColors.Text, onSurfaceVariant = EColors.Muted,
+        ) else darkColorScheme(
             primary = EColors.Lime,
             onPrimary = EColors.OnLime,
             secondary = EColors.Sand,
@@ -70,7 +83,7 @@ fun EnergyTheme(content: @Composable () -> Unit) {
             onSurfaceVariant = EColors.Muted,
             outline = EColors.Track,
             error = EColors.Coral,
-        ),
+        )),
         typography = Typography(
             displayLarge = base.displayLarge.copy(fontFamily = Display),
             headlineMedium = base.headlineMedium.copy(fontFamily = Display),

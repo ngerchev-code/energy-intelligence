@@ -23,6 +23,7 @@ import com.ngerchev.energy.data.MarketData
 import com.ngerchev.energy.logic.Bess
 import com.ngerchev.energy.logic.BessInput
 import com.ngerchev.energy.logic.Prices
+import com.ngerchev.energy.logic.TECH_PRESETS
 import kotlin.math.roundToInt
 
 /** Battery storage (BESS) arbitrage calculator on the real prices of the last 30 days. */
@@ -30,6 +31,7 @@ import kotlin.math.roundToInt
 fun BessScreen(data: MarketData, input: BessInput, onChange: (BessInput) -> Unit, padding: PaddingValues) {
     val days = remember(data.prices30d) { Prices.fullDays(data.prices30d) }
     val res = remember(days, input) { Bess.evaluate(days, input) }
+    val fin = remember(res, input) { res?.let { Bess.finance(it, input) } }
 
     LazyColumn(
         contentPadding = screenPadding(padding),
@@ -63,11 +65,28 @@ fun BessScreen(data: MarketData, input: BessInput, onChange: (BessInput) -> Unit
                 Line("Най-слаб ден", eur(res.worstDay))
                 Line("Печеливши дни", "${(res.profitableDaysShare * 100).roundToInt()} %")
                 Line("Цикли годишно", fmt0(input.cyclesPerDay * 365 * input.availability))
+                if (fin != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Line("Срок на проекта", "${fin.years} год. (живот или цикли)")
+                    Line("NPV при ${fmt0(input.discountRate * 100)} %", eur(fin.npv))
+                    Line("IRR", fin.irr?.let { fmt1(it * 100) + " %" } ?: "—")
+                }
+                Fresh(Kind.SCENARIO, data.feed?.pricesMeta, data.fetchedAt, "симулация по исторически цени")
             }
         }
         item {
             Tile {
                 SectionTitle("Параметри", "Промените се смятат веднага")
+                Label("Технология (типични допускания – проверете с производителя)")
+                Spacer(Modifier.height(6.dp))
+                ChipRow(TECH_PRESETS.map { it.name }, input.tech, { name ->
+                    TECH_PRESETS.firstOrNull { it.name == name }?.let { t ->
+                        onChange(input.copy(tech = t.name, roundTripEff = t.eff, capexEurPerKwh = t.capex,
+                            degradationPerYear = t.degradation, cycleLife = t.cycles))
+                    }
+                }, allLabel = null)
+                TECH_PRESETS.firstOrNull { it.name == input.tech }?.let { Label(it.note) }
+                Spacer(Modifier.height(8.dp))
                 Param("Мощност", input.powerMw, 0.5f..50f, "MW", 0.5) { onChange(input.copy(powerMw = it)) }
                 Param("Капацитет", input.capacityMwh, 0.5f..200f, "MWh", 0.5) { onChange(input.copy(capacityMwh = it)) }
                 Param("Ефективност (кръгова)", input.roundTripEff * 100, 70f..95f, "%", 1.0) {
@@ -85,6 +104,18 @@ fun BessScreen(data: MarketData, input: BessInput, onChange: (BessInput) -> Unit
                 Param("Поддръжка", input.opexEurPerMwYear / 1000, 0f..40f, "хил. €/MW/год.", 0.5) {
                     onChange(input.copy(opexEurPerMwYear = it * 1000))
                 }
+                Param("Деградация на капацитета", input.degradationPerYear * 100, 0f..5f, "%/год.", 0.5) {
+                    onChange(input.copy(degradationPerYear = it / 100))
+                }
+                Param("Живот на цикли", input.cycleLife.toDouble(), 2000f..20000f, "цикъла", 500.0) {
+                    onChange(input.copy(cycleLife = it.roundToInt()))
+                }
+                Param("Срок на проекта", input.lifeYears.toDouble(), 5f..25f, "год.", 1.0) {
+                    onChange(input.copy(lifeYears = it.roundToInt()))
+                }
+                Param("Дисконтов процент", input.discountRate * 100, 2f..15f, "%", 0.5) {
+                    onChange(input.copy(discountRate = it / 100))
+                }
                 Text("Продължителност: ${fmt1(input.capacityMwh / input.powerMw)} ч. при пълна мощност",
                     color = EColors.Muted, fontSize = 12.sp, fontFamily = Body)
             }
@@ -96,7 +127,7 @@ fun BessScreen(data: MarketData, input: BessInput, onChange: (BessInput) -> Unit
                     "Всеки ден батерията купува енергия в най-евтините часове и я продава в по-скъпите часове " +
                         "след това (при 2 цикъла денят се дели на две половини). Продадената енергия е купената по " +
                         "кръговата ефективност. Губещи цикли се пропускат. Годишната сума е средният ден × 365 × 97 % " +
-                        "наличност минус поддръжката. Не са включени мрежови такси, балансиране, деградация, " +
+                        "наличност минус поддръжката. Деградацията и срокът влизат в NPV/IRR. Не са включени мрежови такси, балансиране, " +
                         "приходи от балансиращи услуги (aFRR/mFRR) и финансиране — реалната доходност може да е " +
                         "по-висока от услуги към ЕСО или по-ниска заради такси. Това е ориентировъчен модел, не " +
                         "инвестиционен съвет.",

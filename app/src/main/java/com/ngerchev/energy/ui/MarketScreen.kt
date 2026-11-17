@@ -96,6 +96,7 @@ fun MarketScreen(data: MarketData, padding: PaddingValues) {
                         Label("ср ${fmt1(stats.avg)}")
                         Label("макс ${fmt1(stats.max.eurMwh)}")
                     }
+                    Fresh(Kind.DAY_AHEAD, data.feed?.pricesMeta, data.fetchedAt)
                     if (current != null) {
                         Spacer(Modifier.height(6.dp))
                         Label("= ${fmt2(current.eurMwh / 10)} ц/kWh на борсата, без такси и ДДС")
@@ -150,6 +151,18 @@ fun MarketScreen(data: MarketData, padding: PaddingValues) {
                 }
             }
         }
+        val year = data.feed?.yearDaily.orEmpty()
+        if (year.size > 30) item {
+            Tile {
+                val avg = year.map { it.second }.average()
+                SectionTitle("Последните 12 месеца", "ср ${fmt0(avg)} €/MWh")
+                val lo = year.minOf { it.second }
+                val hi = year.maxOf { it.second }
+                BarChart(values = year.map { it.second }, labels = year.map { it.first.substring(5) },
+                    labelEvery = 60, height = 90.dp, colorFor = { barColor(it, lo, hi) }, average = avg)
+                Fresh(Kind.HISTORY, data.feed?.yearMeta, data.feed?.yearMeta?.retrievedAt, "дневни средни")
+            }
+        }
         item { SourceNote(data) }
     }
 }
@@ -192,7 +205,7 @@ fun SourceNote(data: MarketData) {
     val t = data.fetchedAt.format(DateTimeFormatter.ofPattern("d.MM HH:mm"))
     Text(
         (if (data.fromCache) "Без връзка — последни запазени данни. " else "Обновено $t · ") +
-            "energy-charts.info (Fraunhofer ISE) · ENTSO-E",
+            (data.feed?.pricesMeta?.source ?: "energy-charts.info (Fraunhofer ISE)"),
         color = EColors.Muted, fontSize = 11.sp, fontFamily = Body,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         textAlign = androidx.compose.ui.text.style.TextAlign.Center,

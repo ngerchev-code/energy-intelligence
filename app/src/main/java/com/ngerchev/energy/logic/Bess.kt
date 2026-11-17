@@ -14,7 +14,24 @@ data class BessInput(
     val capexEurPerKwh: Double = 250.0,
     val opexEurPerMwYear: Double = 10_000.0,
     val availability: Double = 0.97,
+    val tech: String = "LFP",
+    val degradationPerYear: Double = 0.02,
+    val cycleLife: Int = 6000,
+    val lifeYears: Int = 15,
+    val discountRate: Double = 0.08,
 )
+
+/** Typical published ranges, used as starting assumptions only. */
+data class TechPreset(val name: String, val eff: Double, val capex: Double, val degradation: Double, val cycles: Int, val note: String)
+
+val TECH_PRESETS = listOf(
+    TechPreset("LFP", 0.88, 250.0, 0.020, 6000, "Литиево-желязо-фосфатна: стандарт за стационарни BESS."),
+    TechPreset("NMC", 0.90, 280.0, 0.030, 4000, "По-висока плътност, по-малко цикли, по-скъпа."),
+    TechPreset("Na-ion", 0.85, 230.0, 0.025, 4000, "Натриево-йонна: ранно търговско внедряване."),
+    TechPreset("Проточна (V)", 0.72, 400.0, 0.005, 15000, "Ванадиева проточна: дълго съхранение, ниска ефективност."),
+)
+
+data class Finance(val npv: Double, val irr: Double?, val years: Int, val cashflows: List<Double>)
 
 data class BessResult(
     val daysAnalysed: Int,
@@ -30,6 +47,28 @@ data class BessResult(
 )
 
 object Bess {
+
+    /**
+     * Yearly cash flows: year 0 = −CAPEX; each later year = revenue reduced by capacity fade − OPEX.
+     * Life ends at [BessInput.lifeYears] or when the cycle life is used up, whichever is first.
+     */
+    fun finance(r: BessResult, inp: BessInput): Finance {
+        val cyclesYear = inp.cyclesPerDay * 365 * inp.availability
+        val years = minOf(inp.lifeYears, (inp.cycleLife / cyclesYear).toInt()).coerceAtLeast(1)
+        val flows = mutableListOf(-r.capex)
+        for (y in 1..years) {
+            val fade = Math.pow(1 - inp.degradationPerYear, (y - 1).toDouble())
+            flows += r.annualRevenue * fade - r.annualOpex
+        }
+        fun npv(rate: Double) = flows.mapIndexed { t, c -> c / Math.pow(1 + rate, t.toDouble()) }.sum()
+        val irr = if (npv(-0.99) * npv(1.0) > 0) null else {
+            var lo = -0.99; var hi = 1.0
+            repeat(100) { val mid = (lo + hi) / 2; if (npv(mid) > 0) lo = mid else hi = mid }
+            (lo + hi) / 2
+        }
+        return Finance(npv(inp.discountRate), irr, years, flows)
+    }
+
 
     /**
      * Profit of one day, in EUR. Each cycle buys the usable energy in the cheapest hours and sells it in

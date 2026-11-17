@@ -27,4 +27,7 @@ data class MarketData(
     val license: String?,
     val fetchedAt: ZonedDateTime,
     val fromCache: Boolean = false,
+    /** The server feed (ENTSO-E etc.), when it could be loaded. */
+    val feed: Feed? = null,
+    val news: List<NewsItem> = emptyList(),
 )

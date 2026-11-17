@@ -59,6 +59,8 @@ fun GridScreen(data: MarketData, padding: PaddingValues) {
                     }
                     Spacer(Modifier.height(14.dp))
                     // One proportional strip of all sources.
+                    Fresh(measuredKind(gen.times[idx]), data.feed?.genMeta, gen.times[idx])
+                    Spacer(Modifier.height(10.dp))
                     Row(Modifier.fillMaxWidth().height(16.dp).clip(RoundedCornerShape(8.dp))) {
                         now.forEach { (s, v) ->
                             Spacer(Modifier.weight((v / total).toFloat().coerceAtLeast(0.001f)).height(16.dp)
@@ -94,6 +96,12 @@ fun GridScreen(data: MarketData, padding: PaddingValues) {
                     StackedChart(columns = hourly.second, labels = hourly.first)
                 }
             }
+        }
+
+        data.feed?.let { f ->
+            item { LoadTile(f) }
+            if (f.resForecast != null) item { ResForecastTile(f) }
+            if (f.weather.isNotEmpty()) item { WeatherTile(f) }
         }
 
         if (flows != null && fi >= 0 && flows.series.isNotEmpty()) {
