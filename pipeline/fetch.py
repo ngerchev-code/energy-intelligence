@@ -792,8 +792,8 @@ def main():
         ranked = sorted(((z, v["today"]["avg"]) for z, v in eu.items() if v.get("today")), key=lambda x: x[1])
         facts["europe_today_avg_sorted"] = ranked
     feed["facts"] = facts
-    feed["ai_brief"] = ai_brief(feed) or (prev.get("ai_brief") if prev.get("ai_brief", {}).get(
-        "generated_at", "")[:10] == iso(NOW)[:10] else None)
+    prev_brief = prev.get("ai_brief") or {}
+    feed["ai_brief"] = ai_brief(feed) or (prev_brief if prev_brief.get("generated_at", "")[:10] == iso(NOW)[:10] else None)
 
     prev_news = load_prev("news.json") or {}
     items = news(prev_news.get("items", []))
