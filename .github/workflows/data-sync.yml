@@ -1,0 +1,48 @@
+name: Data sync (every 15 min)
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Pipeline tests
+        run: python -m unittest discover -s pipeline/tests -v
+
+      # The keys live only in GitHub Secrets; the app never sees them.
+      - name: Fetch data
+        env:
+          ENTSOE_TOKEN: ${{ secrets.ENTSOE_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OUT_DIR: out/feed
+          PREV_BASE: https://raw.githubusercontent.com/${{ github.repository }}/data/feed
+        run: python pipeline/fetch.py
+
+      # Publish to the "data" branch as a single fresh commit (no ever-growing history).
+      - name: Publish feed
+        run: |
+          cd out
+          git init -q -b data
+          git config user.name "energy-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          printf '# Energy Intelligence Bulgaria – data feed\nAuto-generated every 15 min. See feed/status.json.\n' > README.md
+          git add -A
+          git commit -qm "Data $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
