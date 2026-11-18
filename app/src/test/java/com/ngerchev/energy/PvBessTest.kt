@@ -123,4 +123,24 @@ class PvBessTest {
         val d = (0 until 72).map { HourIn((it / 24).toLong(), 50 + 40 * kotlin.math.sin(it / 3.0), if (it % 24 in 7..17) 0.5 else 0.0) }
         assertEquals(PvBess.simulateYear(d, PvBessInput()), PvBess.simulateYear(d, PvBessInput()))
     }
+
+    /**
+     * Cross-check against the independent Python implementation (tools/pvbess_reference.py) on 14 real days
+     * (ENTSO-E prices, PVGIS Pleven). Both must agree to the cent.
+     */
+    @Test fun matchesPythonReferenceOnRealDays() {
+        val txt = javaClass.classLoader!!.getResource("fixture_14days.json")!!.readText()
+        val o = org.json.JSONObject(txt)
+        val a = o.getJSONArray("hours")
+        val hours = (0 until a.length()).map { val r = a.getJSONArray(it); HourIn(r.getLong(0), r.getDouble(1), r.getDouble(2)) }
+        val e = o.getJSONObject("expected")
+        val s = PvBess.simulateYear(hours, PvBessInput())
+        assertEquals(e.getDouble("pv"), s.pvMwh, 1e-3)
+        assertEquals(e.getDouble("sold"), s.pvSoldMwh, 1e-3)
+        assertEquals(e.getDouble("curt"), s.curtailedMwh, 1e-3)
+        assertEquals(e.getDouble("dis"), s.dischargeMwh, 1e-3)
+        assertEquals(e.getDouble("rev_pv"), s.revPvDirect, 0.01)
+        assertEquals(e.getDouble("shift"), s.revPvShifted, 0.01)
+        assertEquals(e.getDouble("arb"), s.revArbitrage, 0.01)
+    }
 }

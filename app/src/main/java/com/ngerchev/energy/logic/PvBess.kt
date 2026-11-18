@@ -319,6 +319,13 @@ object PvBess {
 
 /** Joins real hourly prices with a real-year PV profile (same calendar day and UTC hour). */
 fun buildHours(year: com.ngerchev.energy.data.PriceYear, site: com.ngerchev.energy.data.PvSite): List<HourIn> =
+    joinHours(year, site).let { all ->
+        // complete days only (23–25 h with DST), then exactly the last 365 of them
+        val keep = all.groupBy { it.dayKey }.filterValues { it.size >= 23 }.keys.sorted().takeLast(365).toSet()
+        all.filter { it.dayKey in keep }
+    }
+
+private fun joinHours(year: com.ngerchev.energy.data.PriceYear, site: com.ngerchev.energy.data.PvSite): List<HourIn> =
     year.hours.map { (t, price) ->
         val u = t.atZone(java.time.ZoneOffset.UTC)
         var doy = u.dayOfYear
