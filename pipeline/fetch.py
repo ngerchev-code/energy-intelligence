@@ -744,7 +744,8 @@ def main():
     bg["prices"] = prices("BG", 31, 2)
     # Year of daily averages: refreshed once a day, otherwise carried over.
     prev_year = (prev.get("bg") or {}).get("daily_365")
-    if prev_year and prev_year.get("retrieved_at", "")[:10] == iso(NOW)[:10]:
+    want = "ENTSO-E" if TOKEN else None
+    if prev_year and prev_year.get("retrieved_at", "")[:10] == iso(NOW)[:10] and (want is None or prev_year.get("source") == want):
         bg["daily_365"] = prev_year
     else:
         y = prices("BG", 365, 1)
