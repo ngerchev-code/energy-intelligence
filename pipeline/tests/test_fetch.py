@@ -86,6 +86,16 @@ class T(unittest.TestCase):
         self.assertEqual(fetch.day_stats(pts, "2026-03-29")["n"], 92)
         self.assertIsNone(fetch.day_stats(pts, "2026-03-30"))
 
+    def test_no_energy_charts_when_entsoe_configured(self):
+        old = fetch.TOKEN
+        try:
+            fetch.TOKEN = "x"
+            self.assertFalse(fetch.fallback_allowed())
+            fetch.TOKEN = ""
+            self.assertTrue(fetch.fallback_allowed())
+        finally:
+            fetch.TOKEN = old
+
 
 if __name__ == "__main__":
     unittest.main()

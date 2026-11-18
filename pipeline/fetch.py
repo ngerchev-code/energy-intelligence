@@ -85,6 +85,13 @@ PSR = {
 STATUS: dict[str, dict] = {}
 
 
+def fallback_allowed() -> bool:
+    """Energy-Charts data for several zones is licensed for private use only, and this feed is public.
+    Once ENTSO-E is configured, a failed ENTSO-E call keeps the last ENTSO-E data (marked stale)
+    instead of publishing Energy-Charts data."""
+    return not TOKEN
+
+
 def log(*a):
     print(*a, file=sys.stderr, flush=True)
 
@@ -308,7 +315,7 @@ def prices(zone: str, days_back: int, days_fwd: int) -> dict | None:
                     best.update(dict(x["points"]))
         return block("ENTSO-E", "https://transparency.entsoe.eu", "day-ahead", "EUR/MWh", res[0], zone,
                      points=pts(best.items()), license="ENTSO-E Transparency Platform, reuse with attribution")
-    if not bzn:
+    if not bzn or not fallback_allowed():
         return None
     o = ec("/price", {"bzn": bzn, "start": start.strftime("%Y-%m-%d"),
                       "end": (end - dt.timedelta(minutes=1)).strftime("%Y-%m-%d")}, f"price {zone}")
@@ -337,6 +344,8 @@ def generation_bg() -> dict | None:
             series[nm].update(dict(x["points"]))
         return block("ENTSO-E", "https://transparency.entsoe.eu", "actual", "MW", s[0]["resolution"], "BG",
                      series={k: pts(v.items()) for k, v in series.items()})
+    if not fallback_allowed():
+        return None
     o = ec("/public_power", {"country": "bg", "start": start.strftime("%Y-%m-%d")}, "public_power BG")
     if not o:
         return None
@@ -402,6 +411,8 @@ def flows_bg() -> dict | None:
         if out:
             return block("ENTSO-E", "https://transparency.entsoe.eu", "physical", "MW", "PT60M", "BG",
                          sign="+ внос / − износ", neighbours=out)
+    if not fallback_allowed():
+        return None
     o = ec("/cbet", {"country": "bg", "start": start.strftime("%Y-%m-%d")}, "cbet BG")
     if not o:
         return None
@@ -768,6 +779,9 @@ def main():
     for z in ZONES:
         p = bg["prices"] if z == "BG" else prices(z, 30, 2)
         if not p:
+            old = ((prev.get("europe") or {}).get("zones") or {}).get(z)
+            if old:
+                eu[z] = dict(old, stale=True)
             continue
         sofia_today = NOW.astimezone(SOFIA).strftime("%Y-%m-%d")
         tomorrow = (NOW.astimezone(SOFIA) + dt.timedelta(days=1)).strftime("%Y-%m-%d")
