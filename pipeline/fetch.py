@@ -748,7 +748,7 @@ def main():
     if prev_year and prev_year.get("retrieved_at", "")[:10] == iso(NOW)[:10] and (want is None or prev_year.get("source") == want):
         bg["daily_365"] = prev_year
     else:
-        y = prices("BG", 365, 1)
+        y = prices("BG", 364, 1)  # ENTSO-E allows at most one year per request
         if y:
             bg["daily_365"] = {k: v for k, v in y.items() if k != "points"} | {"days": daily_avgs(y["points"]),
                                                                               "kind": "historical"}
@@ -756,6 +756,11 @@ def main():
     bg["load"] = load_bg()
     bg["res_forecast"] = res_forecast_bg()
     bg["flows"] = flows_bg()
+    # A source that failed this run keeps its last good data; its retrieved_at shows how old it is.
+    for k, v in list(bg.items()):
+        old = (prev.get("bg") or {}).get(k)
+        if v is None and old:
+            bg[k] = dict(old, stale=True)
     feed["bg"] = bg
 
     # European comparison: today + tomorrow at native resolution, plus 30-day daily averages.
@@ -771,7 +776,7 @@ def main():
                  "daily": daily_avgs(p["points"]), "license": p.get("license")}
     feed["europe"] = {"retrieved_at": iso(NOW), "zones": eu,
                       "note": "Средни цени ден напред по зони; Турция не е в ENTSO-E (EPİAŞ), Албания – при наличие."}
-    feed["weather"] = weather()
+    feed["weather"] = weather() or (dict(prev["weather"], stale=True) if prev.get("weather") else None)
 
     # Compact facts for reports and the AI analyst (all numbers come from the data above).
     facts = {"generated_at": iso(NOW)}
