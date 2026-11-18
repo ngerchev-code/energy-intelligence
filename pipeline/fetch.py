@@ -806,7 +806,9 @@ def main():
     # Year of daily averages: refreshed once a day, otherwise carried over.
     prev_year = (prev.get("bg") or {}).get("daily_365")
     want = "ENTSO-E" if TOKEN else None
-    if prev_year and prev_year.get("retrieved_at", "")[:10] == iso(NOW)[:10] and (want is None or prev_year.get("source") == want):
+    have_hourly = load_prev("prices_365.json") is not None
+    if have_hourly and prev_year and prev_year.get("retrieved_at", "")[:10] == iso(NOW)[:10] \
+            and (want is None or prev_year.get("source") == want):
         bg["daily_365"] = prev_year
     else:
         y = prices("BG", 364, 1)  # ENTSO-E allows at most one year per request
