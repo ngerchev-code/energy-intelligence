@@ -68,6 +68,24 @@ class T(unittest.TestCase):
         pts = [["2026-11-16T22:00Z", 10.0]] * 24   # 00:00 Sofia on the 17th
         self.assertEqual(fetch.daily_avgs(pts)[0][0], "2026-11-17")
 
+    def _quarters(self, start_utc, hours):
+        import datetime as dt
+        t0 = dt.datetime.fromisoformat(start_utc)
+        return [[fetch.iso(t0 + dt.timedelta(minutes=15 * i)), 1.0] for i in range(hours * 4)]
+
+    def test_dst_autumn_25h_day(self):
+        # 25.10.2026: Sofia goes from EEST (+3) to EET (+2) -> the local day has 25 hours.
+        pts = self._quarters("2026-10-24T21:00+00:00", 25)
+        days = fetch.daily_avgs(pts)
+        self.assertEqual([d for d, _ in days], ["2026-10-25"])
+        self.assertEqual(fetch.day_stats(pts, "2026-10-25")["n"], 100)
+
+    def test_dst_spring_23h_day(self):
+        # 29.03.2026: EET (+2) -> EEST (+3) -> the local day has 23 hours.
+        pts = self._quarters("2026-03-28T22:00+00:00", 23)
+        self.assertEqual(fetch.day_stats(pts, "2026-03-29")["n"], 92)
+        self.assertIsNone(fetch.day_stats(pts, "2026-03-30"))
+
 
 if __name__ == "__main__":
     unittest.main()

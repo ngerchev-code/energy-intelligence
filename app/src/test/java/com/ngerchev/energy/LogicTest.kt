@@ -117,4 +117,27 @@ class LogicTest {
         assertEquals(-180.0, f.flows!!.series.sumOf { it.values[0] ?: 0.0 }, 1e-9)
         assertEquals(100.0, f.europe[0].today!!.avg, 1e-9)
     }
+
+    private fun quarters(startUtc: String, hours: Int) = (0 until hours * 4).map {
+        com.ngerchev.energy.data.PricePoint(
+            java.time.Instant.parse(startUtc).plusSeconds(900L * it).atZone(EnergyParser.SOFIA), 50.0)
+    }
+
+    @Test
+    fun dstAutumnDayHas25HoursButHourlyViewMergesTheRepeatedHour() {
+        val day = java.time.LocalDate.of(2026, 10, 25)
+        val pts = quarters("2026-10-24T21:00:00Z", 25)
+        assertEquals(100, pts.count { it.time.toLocalDate() == day })   // all 25 hours belong to the 25th
+        // Known limitation: the hourly view groups by clock hour, so 03:00 appears once (averaged).
+        assertEquals(24, Prices.hourly(pts, day).size)
+    }
+
+    @Test
+    fun dstSpringDayHas23Hours() {
+        val day = java.time.LocalDate.of(2026, 3, 29)
+        val h = Prices.hourly(quarters("2026-03-28T22:00:00Z", 23), day)
+        assertEquals(23, h.size)
+        assertTrue(h.none { it.hour == 3 })                             // 03:00 does not exist that night
+        assertEquals(1, Prices.fullDays(quarters("2026-03-28T22:00:00Z", 23)).size)
+    }
 }
