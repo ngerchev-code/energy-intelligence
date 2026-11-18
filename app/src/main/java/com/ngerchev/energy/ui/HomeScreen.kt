@@ -90,6 +90,14 @@ fun HomeScreen(data: MarketData, kb: Knowledge?, padding: PaddingValues, go: (Sc
                 }
             }
         }
+        item {
+            Tile(color = EColors.Track, modifier = Modifier.clickable(role = Role.Button) { go(Screen.PVBESS) }) {
+                Text("PV + BESS инвестиция →", color = EColors.Text, fontFamily = Display, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+                Spacer(Modifier.height(4.dp))
+                Text("NPV, IRR, сценарии и чувствителност върху реалните цени за 12 месеца и реално слънце (PVGIS).",
+                    color = EColors.Muted, fontFamily = Body, fontSize = 13.sp)
+            }
+        }
         val wx = feed?.weather.orEmpty()
         if (wx.isNotEmpty()) item {
             val impact = Weather.impact(wx)

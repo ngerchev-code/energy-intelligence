@@ -32,6 +32,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     val knowledge = com.ngerchev.energy.logic.Knowledge.load(app)
 
+    /** PV+BESS investment inputs (kept while the app runs). */
+    val pvBess = MutableStateFlow(com.ngerchev.energy.logic.PvBessInput())
+    val pvSite = MutableStateFlow("Плевен")
+
     /** 0 = system, 1 = dark, 2 = light. */
     private val _theme = MutableStateFlow(prefs.getInt("theme", 1))
     val theme: StateFlow<Int> = _theme.asStateFlow()

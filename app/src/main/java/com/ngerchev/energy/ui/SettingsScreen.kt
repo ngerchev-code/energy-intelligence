@@ -37,6 +37,7 @@ enum class Screen(val title: String, val short: String) {
     PRODUCTION("Производство", "Производство"),
     TRADE("Пренос и търговия", "Пренос"),
     BESS("BESS анализатор", "BESS"),
+    PVBESS("PV + BESS инвестиция", "PV+BESS"),
     NEWS("Новини", "Новини"),
     VISION("Energy Vision", "Vision"),
     KNOWLEDGE("Знаете ли, че...?", "Знаете ли"),

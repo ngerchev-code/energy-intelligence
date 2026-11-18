@@ -24,6 +24,8 @@ class EnergyRepository(context: Context) {
         val feed = feedBody?.let { runCatching { FeedParser.parse(it.body) }.getOrNull() }
         val news = fetchAny("news", listOf("$FEED/news.json"))
             ?.let { runCatching { FeedParser.parseNews(it.body) }.getOrNull() }.orEmpty()
+        val year = fetchFile("prices_365.json")?.let { runCatching { FeedParser.parsePriceYear(it) }.getOrNull() }
+        val pv = fetchFile("pv_profiles.json")?.let { runCatching { FeedParser.parsePv(it) }.getOrNull() }
         if (feed != null && feed.prices.isNotEmpty()) {
             val tomorrow = LocalDate.now(EnergyParser.SOFIA).plusDays(1)
             return@withContext MarketData(
@@ -36,9 +38,11 @@ class EnergyRepository(context: Context) {
                 fromCache = feedBody.cached,
                 feed = feed,
                 news = news,
+                year = year,
+                pv = pv,
             )
         }
-        loadDirect().copy(feed = feed, news = news)
+        loadDirect().copy(feed = feed, news = news, year = year, pv = pv)
     }
 
     private suspend fun loadDirect(): MarketData = withContext(Dispatchers.IO) {
@@ -80,6 +84,16 @@ class EnergyRepository(context: Context) {
                 fromCache = p.cached,
             )
         }
+    }
+
+    private val dir = java.io.File(context.filesDir, "feed").apply { mkdirs() }
+
+    /** Large files are cached on disk, not in preferences. Falls back to the last saved copy. */
+    private fun fetchFile(name: String): String? {
+        val f = java.io.File(dir, name)
+        val fresh = runCatching { get("$FEED/$name") }.getOrNull()?.takeIf { it.trimStart().startsWith("{") }
+        if (fresh != null) { runCatching { f.writeText(fresh) }; return fresh }
+        return if (f.exists()) runCatching { f.readText() }.getOrNull() else null
     }
 
     private data class Body(val body: String, val cached: Boolean)

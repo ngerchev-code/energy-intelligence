@@ -198,6 +198,33 @@ object FeedParser {
         )
     }
 
+    fun parsePriceYear(json: String): PriceYear? {
+        val o = JSONObject(json)
+        val a = o.optJSONArray("hours") ?: return null
+        val list = ArrayList<Pair<java.time.Instant, Double>>(a.length())
+        for (i in 0 until a.length()) {
+            val r = a.optJSONArray(i) ?: continue
+            if (r.isNull(1)) continue
+            // "2026-11-17T10Z" -> instant
+            val t = runCatching { java.time.Instant.parse(r.getString(0).removeSuffix("Z") + ":00:00Z") }.getOrNull() ?: continue
+            list.add(t to r.getDouble(1))
+        }
+        return PriceYear(o.optString("source"), time(o.optString("retrieved_at")), list)
+    }
+
+    fun parsePv(json: String): PvProfiles? {
+        val o = JSONObject(json)
+        val a = o.optJSONArray("sites") ?: return null
+        val sites = (0 until a.length()).map { i ->
+            val s = a.getJSONObject(i)
+            val kw = s.getJSONArray("kw_per_kwp")
+            PvSite(s.optString("name"), s.optDouble("lat"), s.optDouble("lon"), s.optInt("year"),
+                s.optDouble("kwh_per_kwp_year"), s.optString("radiation_db").takeIf { it.isNotBlank() && it != "null" },
+                DoubleArray(kw.length()) { kw.optDouble(it, 0.0) })
+        }
+        return PvProfiles(o.optString("source"), o.optString("assumptions"), time(o.optString("retrieved_at")), sites)
+    }
+
     fun parseNews(json: String): List<NewsItem> {
         val a = JSONObject(json).optJSONArray("items") ?: return emptyList()
         return (0 until a.length()).mapNotNull { i ->

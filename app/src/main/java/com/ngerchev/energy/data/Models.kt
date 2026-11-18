@@ -30,4 +30,15 @@ data class MarketData(
     /** The server feed (ENTSO-E etc.), when it could be loaded. */
     val feed: Feed? = null,
     val news: List<NewsItem> = emptyList(),
+    /** Last 12 months of hourly day-ahead prices (ENTSO-E), for the investment model. */
+    val year: PriceYear? = null,
+    /** Real-year PV output per kWp for several sites (PVGIS). */
+    val pv: PvProfiles? = null,
 )
+
+data class PriceYear(val source: String, val retrievedAt: java.time.ZonedDateTime?, val hours: List<Pair<java.time.Instant, Double>>)
+
+data class PvSite(val name: String, val lat: Double, val lon: Double, val year: Int, val kwhPerKwp: Double,
+                  val radiationDb: String?, val kw: DoubleArray)
+
+data class PvProfiles(val source: String, val assumptions: String, val retrievedAt: java.time.ZonedDateTime?, val sites: List<PvSite>)

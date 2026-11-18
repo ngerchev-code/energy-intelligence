@@ -147,7 +147,7 @@ private fun Line(label: String, value: String) {
 }
 
 @Composable
-private fun Param(
+internal fun Param(
     label: String, value: Double, range: ClosedFloatingPointRange<Float>, unit: String, step: Double,
     onChange: (Double) -> Unit,
 ) {

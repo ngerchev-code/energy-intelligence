@@ -56,6 +56,7 @@ import com.ngerchev.energy.ui.KnowledgeScreen
 import com.ngerchev.energy.ui.MoreScreen
 import com.ngerchev.energy.ui.NewsScreen
 import com.ngerchev.energy.ui.Palette
+import com.ngerchev.energy.ui.PvBessScreen
 import com.ngerchev.energy.ui.ReportsScreen
 import com.ngerchev.energy.ui.Screen
 import com.ngerchev.energy.ui.SettingsScreen
@@ -129,6 +130,8 @@ private fun App(vm: MainViewModel) {
                         Screen.PRODUCTION -> GridScreen(data, pad)
                         Screen.TRADE -> TradeScreen(data, pad)
                         Screen.BESS -> BessScreen(data, bess, vm::updateBess, pad)
+                        Screen.PVBESS -> PvBessScreen(data, vm.pvBess.collectAsStateWithLifecycle().value, { vm.pvBess.value = it },
+                            vm.pvSite.collectAsStateWithLifecycle().value, { vm.pvSite.value = it }, pad)
                         Screen.NEWS -> NewsScreen(data.news, vision = false, padding = pad)
                         Screen.VISION -> NewsScreen(data.news, vision = true, padding = pad)
                         Screen.ANALYST -> AnalystScreen(data, pad)
