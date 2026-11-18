@@ -776,7 +776,19 @@ def main():
                  "daily": daily_avgs(p["points"]), "license": p.get("license")}
     feed["europe"] = {"retrieved_at": iso(NOW), "zones": eu,
                       "note": "Средни цени ден напред по зони; Турция не е в ENTSO-E (EPİAŞ), Албания – при наличие."}
-    feed["weather"] = weather() or (dict(prev["weather"], stale=True) if prev.get("weather") else None)
+    # Forecasts change hourly at most: reuse the last one for an hour (also spares Open-Meteo's rate limit).
+    pw = prev.get("weather") or {}
+    fresh = False
+    try:
+        age = NOW - dt.datetime.fromisoformat(pw.get("retrieved_at", "").replace("Z", "+00:00"))
+        fresh = not pw.get("stale") and age < dt.timedelta(minutes=55)
+    except ValueError:
+        pass
+    if fresh:
+        feed["weather"] = pw
+        mark("openmeteo", "Open-Meteo", "https://open-meteo.com", True)
+    else:
+        feed["weather"] = weather() or (dict(pw, stale=True) if pw else None)
 
     # Compact facts for reports and the AI analyst (all numbers come from the data above).
     facts = {"generated_at": iso(NOW)}
