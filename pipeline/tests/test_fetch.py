@@ -96,6 +96,10 @@ class T(unittest.TestCase):
         finally:
             fetch.TOKEN = old
 
+    def test_hourly_avgs(self):
+        pts = [["2026-11-17T10:00Z", 10.0], ["2026-11-17T10:15Z", 20.0], ["2026-11-17T11:00Z", 5.0]]
+        self.assertEqual(fetch.hourly_avgs(pts), [["2026-11-17T10Z", 15.0], ["2026-11-17T11Z", 5.0]])
+
 
 if __name__ == "__main__":
     unittest.main()

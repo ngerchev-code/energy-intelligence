@@ -479,6 +479,48 @@ def weather() -> dict | None:
                  points=points, license="CC BY 4.0, open-meteo.com")
 
 
+# ---------------------------------------------------------------- PVGIS (EC JRC)
+
+PV_SITES = [("Плевен", 43.42, 24.62), ("София", 42.70, 23.32), ("Пловдив", 42.15, 24.75),
+            ("Стара Загора", 42.43, 25.64), ("Хасково", 41.93, 25.56), ("Русе", 43.85, 25.97),
+            ("Варна", 43.21, 27.92), ("Бургас", 42.50, 27.47)]
+PV_YEAR = 2023
+
+
+def pvgis_profile(name: str, lat: float, lon: float) -> dict | None:
+    """Hourly AC output of 1 kWp (fixed, south, 30°, 14 % system loss) for a real year."""
+    url = ("https://re.jrc.ec.europa.eu/api/v5_3/seriescalc?" + urllib.parse.urlencode(dict(
+        lat=lat, lon=lon, peakpower=1, loss=14, angle=30, aspect=0, startyear=PV_YEAR, endyear=PV_YEAR,
+        pvcalculation=1, outputformat="json")))
+    try:
+        d = json.loads(http_get(url, timeout=60))
+        rows = d["outputs"]["hourly"]
+        kw = [round(r["P"] / 1000.0, 4) for r in rows]  # W per kWp -> kW per kWp
+        mark("pvgis", "PVGIS (Европейска комисия, JRC)", "https://re.jrc.ec.europa.eu/pvg_tools/", True)
+        db = (d.get("inputs", {}).get("meteo_data", {}) or {}).get("radiation_db")
+        return {"name": name, "lat": lat, "lon": lon, "year": PV_YEAR, "first_time_utc": rows[0]["time"],
+                "radiation_db": db, "kwh_per_kwp_year": round(sum(kw), 1), "kw_per_kwp": kw}
+    except Exception as e:
+        mark("pvgis", "PVGIS (Европейска комисия, JRC)", "https://re.jrc.ec.europa.eu/pvg_tools/", False, f"{name}: {e}")
+        return None
+
+
+def pv_profiles(prev: dict | None) -> dict | None:
+    if prev and prev.get("year") == PV_YEAR and len(prev.get("sites", [])) == len(PV_SITES):
+        try:
+            age = NOW - dt.datetime.fromisoformat(prev["retrieved_at"].replace("Z", "+00:00"))
+            if age < dt.timedelta(days=7):
+                return prev
+        except (KeyError, ValueError):
+            pass
+    sites = [p for p in (pvgis_profile(*s) for s in PV_SITES) if p]
+    if not sites:
+        return prev
+    return block("PVGIS (Европейска комисия, JRC)", "https://re.jrc.ec.europa.eu/pvg_tools/", "historical",
+                 "kW на kWp", "PT60M", "BG", year=PV_YEAR,
+                 assumptions="фиксирана конструкция, юг, наклон 30°, системни загуби 14 %", sites=sites)
+
+
 # ---------------------------------------------------------------- news
 
 FEEDS = [
@@ -724,6 +766,14 @@ def daily_avgs(points: list) -> list:
     return [[d, round(mean(vs), 2)] for d, vs in sorted(by_day.items()) if len(vs) >= 20]
 
 
+def hourly_avgs(points: list) -> list:
+    """15-min prices -> one average per UTC hour: [[ "YYYY-MM-DDTHHZ", price ], ...]."""
+    by_h: dict[str, list] = {}
+    for t, v in points:
+        by_h.setdefault(t[:13] + "Z", []).append(v)
+    return [[h, round(mean(vs), 2)] for h, vs in sorted(by_h.items())]
+
+
 def day_stats(points: list, day: str) -> dict | None:
     vals = [v for t, v in points
             if sofia_day(t) == day]
@@ -763,6 +813,10 @@ def main():
         if y:
             bg["daily_365"] = {k: v for k, v in y.items() if k != "points"} | {"days": daily_avgs(y["points"]),
                                                                               "kind": "historical"}
+            bg["hourly_365"] = {k: v for k, v in y.items() if k != "points"} | {"hours": hourly_avgs(y["points"]),
+                                                                               "kind": "historical"}
+    # The 12 months of hourly prices go to their own file (large; read only by the investment model).
+    hourly = bg.pop("hourly_365", None) or load_prev("prices_365.json")
     bg["generation"] = generation_bg()
     bg["load"] = load_bg()
     bg["res_forecast"] = res_forecast_bg()
@@ -826,6 +880,14 @@ def main():
     feed["facts"] = facts
     prev_brief = prev.get("ai_brief") or {}
     feed["ai_brief"] = ai_brief(feed) or (prev_brief if prev_brief.get("generated_at", "")[:10] == iso(NOW)[:10] else None)
+
+    if hourly:
+        with open(f"{OUT}/prices_365.json", "w", encoding="utf-8") as f:
+            json.dump(hourly, f, ensure_ascii=False, separators=(",", ":"))
+    pv = pv_profiles(load_prev("pv_profiles.json"))
+    if pv:
+        with open(f"{OUT}/pv_profiles.json", "w", encoding="utf-8") as f:
+            json.dump(pv, f, ensure_ascii=False, separators=(",", ":"))
 
     prev_news = load_prev("news.json") or {}
     items = news(prev_news.get("items", []))
