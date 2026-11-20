@@ -44,6 +44,7 @@ import kotlin.math.roundToInt
 private data class PvBessResult(
     val sim: YearSim, val inv: Investment, val base: YearSim, val baseInv: Investment,
     val scenarios: List<Scenario>, val sens: List<Sensitivity>, val hours: Int, val from: String, val to: String,
+    val years: List<Triple<Int, YearSim, Investment>>,
 )
 
 /** PV + BESS investment calculator on real prices (ENTSO-E, last 12 months) and a real PV year (PVGIS). */
@@ -56,7 +57,8 @@ fun PvBessScreen(data: MarketData, input: PvBessInput, onInput: (PvBessInput) ->
     var result by remember { mutableStateOf<PvBessResult?>(null) }
     var busy by remember { mutableStateOf(false) }
 
-    LaunchedEffect(input, site, year) {
+    val pvYears = data.pvYears
+    LaunchedEffect(input, site, year, pvYears) {
         if (year == null || site == null || year.hours.size < 24 * 30) return@LaunchedEffect
         delay(350)                                   // wait until the slider stops
         busy = true
@@ -67,7 +69,11 @@ fun PvBessScreen(data: MarketData, input: PvBessInput, onInput: (PvBessInput) ->
             val z = com.ngerchev.energy.data.EnergyParser.SOFIA
             PvBessResult(sim, PvBess.invest(sim, input), base, PvBess.invest(base, input),
                 PvBess.scenarios(hours, input), PvBess.sensitivity(hours, input), hours.size,
-                fmtTime(year.hours.first().first.atZone(z)), fmtTime(year.hours.last().first.atZone(z)))
+                fmtTime(year.hours.first().first.atZone(z)), fmtTime(year.hours.last().first.atZone(z)),
+                pvYears?.sites?.filter { it.name == site.name }?.map { y ->
+                    val ys = PvBess.simulateYear(buildHours(year, y), input)
+                    Triple(y.year, ys, PvBess.invest(ys, input))
+                }.orEmpty())
         }
         busy = false
     }
@@ -127,6 +133,21 @@ fun PvBessScreen(data: MarketData, input: PvBessInput, onInput: (PvBessInput) ->
                         Stat("Дисконтирано", r.inv.discountedPayback?.let { fmt1(it) } ?: "няма", "год.", EColors.Text, EColors.OnLime)
                     }
                 }
+            }
+            if (r.years.size > 1) item {
+                Tile {
+                    SectionTitle("По метеогодини", "${site.name}, PVGIS ${r.years.first().first}–${r.years.last().first}")
+                    r.years.forEach { (y, ys, inv) ->
+                        KeyValue("$y · ${fmt0(ys.pvMwh)} MWh", "NPV ${eur(inv.npv)} · IRR ${inv.irr?.let { fmt1(it * 100) + "%" } ?: "—"}")
+                    }
+                    val npvs = r.years.map { it.third.npv }
+                    Spacer(Modifier.height(6.dp))
+                    KeyValue("Средно NPV", eur(npvs.average()))
+                    KeyValue("Диапазон NPV", "${eur(npvs.min())} … ${eur(npvs.max())}")
+                    Label("Същите цени (последни 365 дни), различно време. Показва колко зависи резултатът от годината.")
+                }
+            } else item {
+                Label("Диапазон по метеогодини 2019–2023 засега има за Плевен.")
             }
             item {
                 Tile {

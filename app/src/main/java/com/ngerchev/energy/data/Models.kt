@@ -34,6 +34,8 @@ data class MarketData(
     val year: PriceYear? = null,
     /** Real-year PV output per kWp for several sites (PVGIS). */
     val pv: PvProfiles? = null,
+    /** Same site, several real meteorological years (PVGIS), for the year-to-year range. */
+    val pvYears: PvProfiles? = null,
 )
 
 data class PriceYear(val source: String, val retrievedAt: java.time.ZonedDateTime?, val hours: List<Pair<java.time.Instant, Double>>)
