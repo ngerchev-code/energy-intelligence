@@ -487,10 +487,10 @@ PV_SITES = [("Плевен", 43.42, 24.62), ("София", 42.70, 23.32), ("Пл
 PV_YEAR = 2023
 
 
-def pvgis_profile(name: str, lat: float, lon: float) -> dict | None:
+def pvgis_profile(name: str, lat: float, lon: float, year: int = None) -> dict | None:
     """Hourly AC output of 1 kWp (fixed, south, 30°, 14 % system loss) for a real year."""
     url = ("https://re.jrc.ec.europa.eu/api/v5_3/seriescalc?" + urllib.parse.urlencode(dict(
-        lat=lat, lon=lon, peakpower=1, loss=14, angle=30, aspect=0, startyear=PV_YEAR, endyear=PV_YEAR,
+        lat=lat, lon=lon, peakpower=1, loss=14, angle=30, aspect=0, startyear=year or PV_YEAR, endyear=year or PV_YEAR,
         pvcalculation=1, outputformat="json")))
     try:
         d = json.loads(http_get(url, timeout=60))
@@ -498,7 +498,7 @@ def pvgis_profile(name: str, lat: float, lon: float) -> dict | None:
         kw = [round(r["P"] / 1000.0, 4) for r in rows]  # W per kWp -> kW per kWp
         mark("pvgis", "PVGIS (Европейска комисия, JRC)", "https://re.jrc.ec.europa.eu/pvg_tools/", True)
         db = (d.get("inputs", {}).get("meteo_data", {}) or {}).get("radiation_db")
-        return {"name": name, "lat": lat, "lon": lon, "year": PV_YEAR, "first_time_utc": rows[0]["time"],
+        return {"name": name, "lat": lat, "lon": lon, "year": year or PV_YEAR, "first_time_utc": rows[0]["time"],
                 "radiation_db": db, "kwh_per_kwp_year": round(sum(kw), 1), "kw_per_kwp": kw}
     except Exception as e:
         mark("pvgis", "PVGIS (Европейска комисия, JRC)", "https://re.jrc.ec.europa.eu/pvg_tools/", False, f"{name}: {e}")
@@ -519,6 +519,21 @@ def pv_profiles(prev: dict | None) -> dict | None:
     return block("PVGIS (Европейска комисия, JRC)", "https://re.jrc.ec.europa.eu/pvg_tools/", "historical",
                  "kW на kWp", "PT60M", "BG", year=PV_YEAR,
                  assumptions="фиксирана конструкция, юг, наклон 30°, системни загуби 14 %", sites=sites)
+
+
+PV_YEARS = [2019, 2020, 2021, 2022, 2023]
+
+
+def pv_years(prev: dict | None) -> dict | None:
+    """Same site (Плевен), five real meteorological years: how much PV output varies from year to year."""
+    if prev and [s.get("year") for s in prev.get("sites", [])] == PV_YEARS:
+        return prev
+    sites = [p for p in (pvgis_profile("Плевен", 43.42, 24.62, y) for y in PV_YEARS) if p]
+    if len(sites) != len(PV_YEARS):
+        return prev
+    return block("PVGIS (Европейска комисия, JRC)", "https://re.jrc.ec.europa.eu/pvg_tools/", "historical",
+                 "kW на kWp", "PT60M", "BG", assumptions="фиксирана конструкция, юг, наклон 30°, системни загуби 14 %",
+                 sites=sites)
 
 
 # ---------------------------------------------------------------- news
@@ -890,6 +905,11 @@ def main():
     if pv:
         with open(f"{OUT}/pv_profiles.json", "w", encoding="utf-8") as f:
             json.dump(pv, f, ensure_ascii=False, separators=(",", ":"))
+
+    pvy = pv_years(load_prev("pv_years.json"))
+    if pvy:
+        with open(f"{OUT}/pv_years.json", "w", encoding="utf-8") as f:
+            json.dump(pvy, f, ensure_ascii=False, separators=(",", ":"))
 
     prev_news = load_prev("news.json") or {}
     items = news(prev_news.get("items", []))
