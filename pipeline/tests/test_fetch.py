@@ -1,6 +1,7 @@
 import os, sys, unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import fetch
+import tutorial
 
 A44 = b"""<?xml version="1.0" encoding="UTF-8"?>
 <Publication_MarketDocument xmlns="urn:iec62325.351:tc57wg16:451-3:publicationdocument:7:3">
@@ -103,3 +104,37 @@ class T(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TutorialTest(unittest.TestCase):
+    def _feed(self):
+        import datetime as dt
+        pts, t = [], dt.datetime(2026, 11, 1, 23, 0, tzinfo=dt.timezone.utc)
+        while t < dt.datetime(2026, 11, 22, 23, 0, tzinfo=dt.timezone.utc):
+            h = t.astimezone(tutorial.SOFIA).hour
+            pts.append([t.strftime("%Y-%m-%dT%H:%MZ"), 100.0 + 10 * (h >= 17) - 20 * (2 <= h <= 4)])
+            t += dt.timedelta(minutes=15)
+        return {"bg": {"prices": {"points": pts, "source": "ENTSO-E"}}, "europe": {"zones": {}}}
+
+    def test_sunday_once_and_archive(self):
+        import datetime as dt
+        feed = self._feed()
+        sat = dt.datetime(2026, 11, 21, 10, 0, tzinfo=dt.timezone.utc)
+        r = tutorial.update_lessons(None, feed, [], sat)          # bootstrap: last completed week
+        self.assertEqual([l["id"] for l in r["lessons"]], ["2026-W46"])
+        self.assertEqual(len(tutorial.update_lessons(r, feed, [], sat)["lessons"]), 1)   # not on Saturday
+        early = dt.datetime(2026, 11, 22, 5, 0, tzinfo=dt.timezone.utc)                # 07:00 Sofia
+        self.assertEqual(len(tutorial.update_lessons(r, feed, [], early)["lessons"]), 1)
+        sun = dt.datetime(2026, 11, 22, 7, 0, tzinfo=dt.timezone.utc)                  # 09:00 Sofia
+        r2 = tutorial.update_lessons(r, feed, [], sun)
+        self.assertEqual([l["id"] for l in r2["lessons"]], ["2026-W47", "2026-W46"])
+        self.assertEqual(r2["lessons"][0]["number"], 2)
+        self.assertEqual(len(tutorial.update_lessons(r2, feed, [], sun)["lessons"]), 2)  # once per Sunday
+
+    def test_numbers_from_data(self):
+        import datetime as dt
+        l = tutorial.build_lesson(self._feed(), [], dt.datetime(2026, 11, 22, 9, 0, tzinfo=dt.timezone.utc), 1)
+        self.assertIn("Нямаше часове с отрицателна цена.", l["facts"])
+        self.assertTrue(any("около 02:00" in f for f in l["facts"]))
+        # 1 MW / 2 MWh, buy 2 h at 80, sell 2 h at 110 with 88 %: 2*110*0.88 - 2*80 = 33.6
+        self.assertTrue(l["exercise"]["answer"].startswith("≈ 34 €"))

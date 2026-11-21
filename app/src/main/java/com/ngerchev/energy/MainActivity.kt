@@ -61,6 +61,7 @@ import com.ngerchev.energy.ui.ReportsScreen
 import com.ngerchev.energy.ui.Screen
 import com.ngerchev.energy.ui.SettingsScreen
 import com.ngerchev.energy.ui.TradeScreen
+import com.ngerchev.energy.ui.TutorialScreen
 import com.ngerchev.energy.ui.BessScreen
 import com.ngerchev.energy.ui.Body
 import com.ngerchev.energy.ui.Display
@@ -136,6 +137,7 @@ private fun App(vm: MainViewModel) {
                         Screen.VISION -> NewsScreen(data.news, vision = true, padding = pad)
                         Screen.ANALYST -> AnalystScreen(data, pad)
                         Screen.REPORTS -> ReportsScreen(data, pad)
+                        Screen.TUTORIAL -> TutorialScreen(data.lessons, pad)
                         else -> MoreScreen(pad, go)
                     }
                     state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

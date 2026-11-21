@@ -41,6 +41,7 @@ enum class Screen(val title: String, val short: String) {
     NEWS("Новини", "Новини"),
     VISION("Energy Vision", "Vision"),
     KNOWLEDGE("Знаете ли, че...?", "Знаете ли"),
+    TUTORIAL("Самоучител", "Самоучител"),
     ANALYST("AI анализатор", "AI"),
     REPORTS("Отчети", "Отчети"),
     SETTINGS("Настройки", "Настройки"),
@@ -56,7 +57,7 @@ fun MoreScreen(padding: PaddingValues, go: (Screen) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         items(list) { s ->
-            val accent = s == Screen.VISION || s == Screen.KNOWLEDGE
+            val accent = s == Screen.VISION || s == Screen.KNOWLEDGE || s == Screen.TUTORIAL
             Column(Modifier.clip(RoundedCornerShape(24.dp)).background(if (accent) EColors.Lime else EColors.Tile)
                 .clickable(role = Role.Button) { go(s) }.padding(16.dp)) {
                 Text("%02d".format(s.ordinal + 1), color = if (accent) EColors.OnLime else EColors.Muted,

@@ -242,4 +242,25 @@ object FeedParser {
             )
         }
     }
+
+    fun parseLessons(json: String): List<Lesson> {
+        val a = JSONObject(json).optJSONArray("lessons") ?: return emptyList()
+        return (0 until a.length()).map { i ->
+            val l = a.getJSONObject(i)
+            val c = l.optJSONObject("concept") ?: JSONObject()
+            val e = l.optJSONObject("exercise") ?: JSONObject()
+            val n = l.optJSONArray("news")
+            Lesson(
+                id = l.optString("id"), number = l.optInt("number"), title = l.optString("title"),
+                published = time(l.optString("published")),
+                facts = strings(l.optJSONArray("facts")), why = strings(l.optJSONArray("why")),
+                conceptTitle = c.optString("title"), conceptText = c.optString("text"), conceptWhere = c.optString("where"),
+                question = e.optString("question"), answer = e.optString("answer"),
+                news = (0 until (n?.length() ?: 0)).map { j ->
+                    val x = n!!.getJSONObject(j); LessonNews(x.optString("title"), x.optString("link"), x.optString("source"))
+                },
+                sources = strings(l.optJSONArray("sources")), note = l.optString("note"),
+            )
+        }
+    }
 }

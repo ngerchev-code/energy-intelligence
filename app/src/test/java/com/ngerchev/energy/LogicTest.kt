@@ -140,4 +140,12 @@ class LogicTest {
         assertTrue(h.none { it.hour == 3 })                             // 03:00 does not exist that night
         assertEquals(1, Prices.fullDays(quarters("2026-03-28T22:00:00Z", 23)).size)
     }
+
+    @Test fun lessonsParse() {
+        val json = javaClass.classLoader!!.getResource("lessons_sample.json")!!.readText()
+        val l = com.ngerchev.energy.data.FeedParser.parseLessons(json)
+        assertEquals(1, l.size)
+        assertEquals("2026-W46", l[0].id)
+        assertTrue(l[0].facts.isNotEmpty() && l[0].question.isNotBlank() && l[0].conceptTitle.isNotBlank())
+    }
 }

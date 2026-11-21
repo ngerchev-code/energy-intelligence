@@ -36,6 +36,18 @@ data class MarketData(
     val pv: PvProfiles? = null,
     /** Same site, several real meteorological years (PVGIS), for the year-to-year range. */
     val pvYears: PvProfiles? = null,
+    /** „Самоучител“: weekly lessons built on the server every Sunday from the real data. */
+    val lessons: List<Lesson> = emptyList(),
+)
+
+data class LessonNews(val title: String, val link: String, val source: String)
+
+data class Lesson(
+    val id: String, val number: Int, val title: String, val published: java.time.ZonedDateTime?,
+    val facts: List<String>, val why: List<String>,
+    val conceptTitle: String, val conceptText: String, val conceptWhere: String,
+    val question: String, val answer: String,
+    val news: List<LessonNews>, val sources: List<String>, val note: String,
 )
 
 data class PriceYear(val source: String, val retrievedAt: java.time.ZonedDateTime?, val hours: List<Pair<java.time.Instant, Double>>)

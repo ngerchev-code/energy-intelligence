@@ -33,6 +33,9 @@ import xml.etree.ElementTree as ET
 from statistics import mean
 from zoneinfo import ZoneInfo
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import tutorial  # noqa: E402
+
 UTC = dt.timezone.utc
 SOFIA = ZoneInfo("Europe/Sofia")
 NOW = dt.datetime.now(UTC).replace(second=0, microsecond=0)
@@ -913,6 +916,12 @@ def main():
 
     prev_news = load_prev("news.json") or {}
     items = news(prev_news.get("items", []))
+    try:
+        lessons = tutorial.update_lessons(load_prev("lessons.json"), feed, items, NOW)
+        with open(f"{OUT}/lessons.json", "w", encoding="utf-8") as f:
+            json.dump(lessons, f, ensure_ascii=False, separators=(",", ":"))
+    except Exception as e:  # a lesson must never break the data feed
+        log(f"lessons failed: {e}")
 
     feed["sources"] = list(STATUS.values())
     status = {"generated_at": iso(NOW), "entsoe_configured": bool(TOKEN), "ai_configured": bool(AI_KEY),

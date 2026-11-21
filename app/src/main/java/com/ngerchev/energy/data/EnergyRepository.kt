@@ -27,6 +27,7 @@ class EnergyRepository(context: Context) {
         val year = fetchFile("prices_365.json")?.let { runCatching { FeedParser.parsePriceYear(it) }.getOrNull() }
         val pv = fetchFile("pv_profiles.json")?.let { runCatching { FeedParser.parsePv(it) }.getOrNull() }
         val pvYears = fetchFile("pv_years.json")?.let { runCatching { FeedParser.parsePv(it) }.getOrNull() }
+        val lessons = fetchFile("lessons.json")?.let { runCatching { FeedParser.parseLessons(it) }.getOrNull() }.orEmpty()
         if (feed != null && feed.prices.isNotEmpty()) {
             val tomorrow = LocalDate.now(EnergyParser.SOFIA).plusDays(1)
             return@withContext MarketData(
@@ -42,9 +43,10 @@ class EnergyRepository(context: Context) {
                 year = year,
                 pv = pv,
                 pvYears = pvYears,
+                lessons = lessons,
             )
         }
-        loadDirect().copy(feed = feed, news = news, year = year, pv = pv, pvYears = pvYears)
+        loadDirect().copy(feed = feed, news = news, year = year, pv = pv, pvYears = pvYears, lessons = lessons)
     }
 
     private suspend fun loadDirect(): MarketData = withContext(Dispatchers.IO) {
