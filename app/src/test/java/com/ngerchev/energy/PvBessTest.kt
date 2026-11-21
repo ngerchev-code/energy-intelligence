@@ -143,4 +143,15 @@ class PvBessTest {
         assertEquals(e.getDouble("shift"), s.revPvShifted, 0.01)
         assertEquals(e.getDouble("arb"), s.revArbitrage, 0.01)
     }
+
+    @Test fun explanationFlagsLowDscrAndKeepsNumbers() {
+        val inp = PvBessInput(pvMwp = 0.0, bessMwh = 0.0, bessMw = 0.0, capexGrid = 1000.0, opexPvPerKwpYear = 0.0,
+            opexBessPerKwYear = 0.0, lifeYears = 10, debtShare = 0.9, interestRate = 0.1, loanYears = 5, pvDegradation = 0.0)
+        val sim = YearSim(8760, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 150.0, 0.0, 0.0, 0.0, 0.0, 0)
+        val inv = PvBess.invest(sim, inp)
+        val ex = com.ngerchev.energy.logic.PvBessExplain.explain(sim, inv, sim, inv, emptyList(), emptyList(), emptyList(), inp)
+        // debt service = annuity(900, 10 %, 5) = 237.42 > 150 -> DSCR 0.63 < 1.20
+        assertTrue(ex.risks.any { it.contains("DSCR") })
+        assertEquals(150.0, inv.rows[0].revenue, 1e-9)   // explanation does not change the result
+    }
 }

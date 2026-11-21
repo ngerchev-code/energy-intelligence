@@ -150,6 +150,23 @@ fun PvBessScreen(data: MarketData, input: PvBessInput, onInput: (PvBessInput) ->
                 Label("Диапазон по метеогодини 2019–2023 засега има за Плевен.")
             }
             item {
+                val ex = remember(r) {
+                    com.ngerchev.energy.logic.PvBessExplain.explain(r.sim, r.inv, r.base, r.baseInv, r.scenarios, r.sens,
+                        r.years.map { it.third.npv }, input)
+                }
+                Tile(color = EColors.Track) {
+                    SectionTitle("Анализ на резултата", "детерминистичен, без AI")
+                    Badge("ФАКТИ ОТ МОДЕЛА", EColors.Lime)
+                    ex.facts.forEach { Spacer(Modifier.height(6.dp)); BodyText("• $it", size = 13) }
+                    if (ex.inference.isNotEmpty()) {
+                        Spacer(Modifier.height(10.dp)); Badge("ТЪЛКУВАНЕ (НЕ Е ФАКТ)", EColors.Sand)
+                        ex.inference.forEach { Spacer(Modifier.height(6.dp)); BodyText("• $it", EColors.Muted, 13) }
+                    }
+                    Spacer(Modifier.height(10.dp)); Badge("РИСКОВЕ", EColors.Coral)
+                    ex.risks.forEach { Spacer(Modifier.height(6.dp)); BodyText("• $it", size = 13) }
+                }
+            }
+            item {
                 Tile {
                     SectionTitle("Година 1 · енергия", "MWh")
                     KeyValue("PV производство", fmt0(r.sim.pvMwh))
