@@ -65,7 +65,7 @@ jobs:
         run: |
           gh release create "v1.0.${{ github.run_number }}" EnergyIntelligence.apk \
             --title "Energy Intelligence Bulgaria 1.0.${{ github.run_number }}" \
-            --notes "Свали EnergyIntelligence.apk и го отвори на телефона." \
+            --notes "$(git log -1 --pretty=%s)" \
             --latest
         env:
           GH_TOKEN: ${{ github.token }}

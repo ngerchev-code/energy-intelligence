@@ -148,4 +148,13 @@ class LogicTest {
         assertEquals("2026-W46", l[0].id)
         assertTrue(l[0].facts.isNotEmpty() && l[0].question.isNotBlank() && l[0].conceptTitle.isNotBlank())
     }
+
+    @Test fun updaterParsesRelease() {
+        assertEquals(12, com.ngerchev.energy.logic.Updater.codeOf("v1.0.12"))
+        val json = """{"tag_name":"v1.0.12","body":"Обновяване","published_at":"2026-11-22T07:00:00Z",
+            "assets":[{"name":"EnergyIntelligence.apk","size":123,"browser_download_url":"https://github.com/x/EnergyIntelligence.apk"}]}"""
+        val u = com.ngerchev.energy.logic.Updater.parse(json)!!
+        assertEquals(12, u.code); assertEquals("1.0.12", u.name); assertEquals(123L, u.size)
+        assertEquals(null, com.ngerchev.energy.logic.Updater.parse("""{"tag_name":"v1.0.13","assets":[]}"""))
+    }
 }

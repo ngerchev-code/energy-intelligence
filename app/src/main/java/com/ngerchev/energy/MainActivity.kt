@@ -62,6 +62,8 @@ import com.ngerchev.energy.ui.Screen
 import com.ngerchev.energy.ui.SettingsScreen
 import com.ngerchev.energy.ui.TradeScreen
 import com.ngerchev.energy.ui.TutorialScreen
+import com.ngerchev.energy.ui.UpdateBanner
+import com.ngerchev.energy.ui.UpdateScreen
 import com.ngerchev.energy.ui.BessScreen
 import com.ngerchev.energy.ui.Body
 import com.ngerchev.energy.ui.Display
@@ -117,6 +119,8 @@ private fun App(vm: MainViewModel) {
     Box(Modifier.fillMaxSize().background(EColors.Bg)) {
         Column(Modifier.fillMaxSize()) {
             Header(screen, live = state.data?.fromCache == false, loading = state.loading, onRefresh = vm::refresh)
+            val upd by vm.update.collectAsStateWithLifecycle()
+            if (screen != Screen.UPDATE) UpdateBanner(upd) { go(Screen.UPDATE) }
             Box(Modifier.weight(1f)) {
                 val pad = PaddingValues(0.dp)
                 val data = state.data
@@ -124,6 +128,9 @@ private fun App(vm: MainViewModel) {
                     screen == Screen.MORE -> MoreScreen(pad, go)
                     screen == Screen.SETTINGS -> SettingsScreen(data, vm.theme.collectAsStateWithLifecycle().value, vm::setTheme, pad)
                     screen == Screen.KNOWLEDGE -> KnowledgeScreen(vm.knowledge, pad)
+                    screen == Screen.UPDATE -> UpdateScreen(vm.update.collectAsStateWithLifecycle().value,
+                        vm.autoUpdate.collectAsStateWithLifecycle().value, vm::setAutoUpdate,
+                        { vm.checkUpdate(manual = true) }, vm::downloadUpdate, pad)
                     data != null -> when (screen) {
                         Screen.HOME -> HomeScreen(data, vm.knowledge, pad, go)
                         Screen.MARKET -> MarketScreen(data, pad)

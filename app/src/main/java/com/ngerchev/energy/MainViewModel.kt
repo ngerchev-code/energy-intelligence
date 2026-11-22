@@ -41,7 +41,59 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val theme: StateFlow<Int> = _theme.asStateFlow()
     fun setTheme(v: Int) { _theme.value = v; prefs.edit().putInt("theme", v).apply() }
 
-    init { refresh() }
+    // ---- App updates (GitHub Releases) ----
+    data class UpdateState(
+        val checking: Boolean = false, val info: com.ngerchev.energy.logic.UpdateInfo? = null,
+        val available: Boolean = false, val error: String? = null, val progress: Float? = null,
+        val apk: String? = null, val checkedAt: Long = 0L,
+    )
+    private val _update = MutableStateFlow(UpdateState(checkedAt = prefs.getLong("upd_at", 0L)))
+    val update: StateFlow<UpdateState> = _update.asStateFlow()
+    private val _autoUpdate = MutableStateFlow(prefs.getBoolean("upd_auto", true))
+    val autoUpdate: StateFlow<Boolean> = _autoUpdate.asStateFlow()
+    fun setAutoUpdate(v: Boolean) { _autoUpdate.value = v; prefs.edit().putBoolean("upd_auto", v).apply() }
+
+    fun checkUpdate(manual: Boolean = true) {
+        if (_update.value.checking || _update.value.progress != null) return
+        _update.update { it.copy(checking = true, error = null) }
+        viewModelScope.launch {
+            val ctx = getApplication<Application>()
+            try {
+                val info = com.ngerchev.energy.logic.Updater.check()
+                val now = System.currentTimeMillis()
+                prefs.edit().putLong("upd_at", now).apply()
+                val avail = info != null && info.code > com.ngerchev.energy.logic.Updater.currentCode(ctx)
+                val ready = com.ngerchev.energy.logic.Updater.file(ctx).takeIf { avail && it.exists() && it.length() == info!!.size
+                    && prefs.getInt("upd_file", 0) == info.code }
+                _update.value = UpdateState(info = info, available = avail, checkedAt = now, apk = ready?.path)
+                // Automatic mode also downloads the update, so installing is one tap.
+                if (avail && !manual && ready == null) downloadUpdate()
+            } catch (e: Exception) {
+                _update.update { it.copy(checking = false, error = e.message ?: "Няма връзка") }
+            }
+        }
+    }
+
+    fun downloadUpdate() {
+        val info = _update.value.info ?: return
+        if (_update.value.progress != null) return
+        _update.update { it.copy(progress = 0f, error = null) }
+        viewModelScope.launch {
+            try {
+                val f = com.ngerchev.energy.logic.Updater.download(getApplication(), info) { p -> _update.update { it.copy(progress = p) } }
+                prefs.edit().putInt("upd_file", info.code).apply()
+                _update.update { it.copy(progress = null, apk = f.path) }
+            } catch (e: Exception) {
+                _update.update { it.copy(progress = null, error = e.message ?: "Изтеглянето не успя") }
+            }
+        }
+    }
+
+    init {
+        refresh()
+        // Automatic mode: check on every app start (one small request to GitHub).
+        if (_autoUpdate.value) checkUpdate(manual = false)
+    }
 
     fun refresh() {
         _state.update { it.copy(loading = true, error = null) }

@@ -44,6 +44,7 @@ enum class Screen(val title: String, val short: String) {
     TUTORIAL("Самоучител", "Самоучител"),
     ANALYST("AI анализатор", "AI"),
     REPORTS("Отчети", "Отчети"),
+    UPDATE("Обновяване", "Обновяване"),
     SETTINGS("Настройки", "Настройки"),
     MORE("Всички раздели", "Още"),
 }

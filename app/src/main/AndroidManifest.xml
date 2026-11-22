@@ -3,6 +3,8 @@
 
     <!-- Only to download public market data, weather and news from the app's own data feed. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Only to open Android's installer for an update the user chose to install (GitHub Releases). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <application
         android:allowBackup="false"
