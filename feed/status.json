@@ -1,0 +1,79 @@
+{
+ "generated_at": "2026-11-28T12:09Z",
+ "entsoe_configured": true,
+ "ai_configured": false,
+ "sources": [
+  {
+   "id": "entsoe",
+   "name": "ENTSO-E Transparency Platform",
+   "url": "https://transparency.entsoe.eu",
+   "calls": 31,
+   "errors": 0,
+   "last_success": "2026-11-28T12:09Z",
+   "status": "ok"
+  },
+  {
+   "id": "openmeteo",
+   "name": "Open-Meteo",
+   "url": "https://open-meteo.com",
+   "calls": 1,
+   "errors": 0,
+   "last_success": "2026-11-28T12:09Z",
+   "status": "ok"
+  },
+  {
+   "id": "rss_ec_energy",
+   "name": "European Commission – Energy",
+   "url": "https://energy.ec.europa.eu/node/2/rss_en",
+   "calls": 1,
+   "errors": 0,
+   "last_success": "2026-11-28T12:09Z",
+   "status": "ok"
+  },
+  {
+   "id": "rss_doe",
+   "name": "US Department of Energy",
+   "url": "https://www.energy.gov/rss/newsroom.xml",
+   "calls": 1,
+   "errors": 0,
+   "last_success": "2026-11-28T12:09Z",
+   "status": "ok"
+  },
+  {
+   "id": "rss_sciencedaily",
+   "name": "ScienceDaily – Energy",
+   "url": "https://www.sciencedaily.com/rss/matter_energy.xml",
+   "calls": 1,
+   "errors": 0,
+   "last_success": "2026-11-28T12:09Z",
+   "status": "ok"
+  },
+  {
+   "id": "rss_phys_energy",
+   "name": "Phys.org – Energy & Green Tech",
+   "url": "https://phys.org/rss-feed/technology-news/energy-green-tech/",
+   "calls": 1,
+   "errors": 0,
+   "last_success": "2026-11-28T12:09Z",
+   "status": "ok"
+  },
+  {
+   "id": "rss_ess_news",
+   "name": "Energy-Storage.news",
+   "url": "https://www.energy-storage.news/feed/",
+   "calls": 1,
+   "errors": 0,
+   "last_success": "2026-11-28T12:09Z",
+   "status": "ok"
+  },
+  {
+   "id": "rss_pvmag",
+   "name": "pv magazine",
+   "url": "https://www.pv-magazine.com/feed/",
+   "calls": 1,
+   "errors": 0,
+   "last_success": "2026-11-28T12:09Z",
+   "status": "ok"
+  }
+ ]
+}
